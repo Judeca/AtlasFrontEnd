@@ -74,7 +74,7 @@ export default function LandingPage() {
               <div className="flex items-center justify-center">
                 <div className="relative h-[350px] w-[350px] sm:h-[400px] sm:w-[400px] lg:h-[500px] lg:w-[500px]">
                   <Image
-                    src="/placeholder.svg?height=500&width=500&text=Atlas"
+                    src="/educationimage.jpg"
                     alt="Atlas Learning Platform"
                     width={500}
                     height={500}
