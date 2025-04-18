@@ -31,11 +31,14 @@ export default function LoginPage() {
     try {
       const response = await api.post('/auth/signIn', formData);
       if (response.data) {
+        const { token, user } = await response.data 
+        document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=strict`;
+        console.log('All cookies:', document.cookie); 
         // Save token and user data to localStorage
-        localStorage.setItem('token', response.data.token);
+        //localStorage.setItem('token', response.data.token);
         localStorage.setItem('userId', response.data.user.id);
-        localStorage.setItem('role', response.data.user.role);
-        localStorage.setItem('userData', JSON.stringify(response.data.user));
+        //localStorage.setItem('role', response.data.user.role);
+        //localStorage.setItem('userData', JSON.stringify(response.data.user));
   
         // Redirect based on role
         switch(response.data.user.role) {

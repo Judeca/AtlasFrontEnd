@@ -33,9 +33,20 @@ export default function QuizRankingsPage()  {
   const [error, setError] = useState<string | null>(null)
   const [yourRank, setYourRank] = useState<number | null>(null)
   const [yourData, setYourData] = useState<QuizRanking | null>(null)
+  const [userId,setUserId]=useState("")
+
+  useEffect(() => { 
+    const userID = localStorage.getItem("userId");  
+    console.log("HERE IS ",userID) 
+    if (userID) { 
+    console.log(userID) 
+    setUserId(userID) 
+    } 
+    },[userId] ); 
+
 
   useEffect(() => {
-    if(!quizId){
+    if(!quizId ||!userId ){
       return;
     }
     const fetchRankings = async () => {
@@ -44,10 +55,9 @@ export default function QuizRankingsPage()  {
         if (response.data) {
           setRankings(response.data)
           
-          // Find current user's rank (assuming you have studentId in localStorage)
-          const studentId = localStorage.getItem("studentId")
-          if (studentId) {
-            const yourRanking = response.data.find((r: QuizRanking) => r.studentId === studentId)
+          
+          if (userId) {
+            const yourRanking = response.data.find((r: QuizRanking) => r.studentId === userId)
             if (yourRanking) {
               setYourRank(yourRanking.rank)
               setYourData(yourRanking)
@@ -66,7 +76,7 @@ export default function QuizRankingsPage()  {
     }
 
     fetchRankings()
-  }, [quizId])
+  }, [quizId,userId])
 
   if (loading) {
     return (

@@ -294,7 +294,7 @@ export default function SignupPage() {
               </Link>
             </div>
             <div className="mt-auto">
-              <Link href="/LandingPage" className="inline-flex items-center text-sm text-muted-foreground hover:text-emerald-500">
+              <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-emerald-500">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to home
               </Link>

@@ -18,6 +18,12 @@ export default function StudentCoursesPage() {
   const [courseavailable ,setCourseavailable]=useState<any[]>([]);
   const [userId,setUserId]=useState<any>("")
   
+  const [loading, setLoading] = useState({
+    courseavailable: true,
+    courseenrollement: true,
+    quizzes: true,
+    materials:true
+  })
   
   useEffect(() => {
     const userID = localStorage.getItem("userId"); 
@@ -45,6 +51,8 @@ export default function StudentCoursesPage() {
         setCourseavailable(courseAvailableWithProgress);
       } catch (error) {
         console.error("Error fetching chapters:", error);
+      } finally {
+        setLoading(prev => ({...prev, courseavailable: false}));
       }
     };
 
@@ -61,10 +69,12 @@ export default function StudentCoursesPage() {
     const fetchcourses= async ()=>{
     try{
       const response =await api.get (`/courseenrollement/courses/enrolled/${userId}`)
-      console.log(response.data)
+      console.log("course enrol",response.data)
       setCourses(response.data)  
     } catch(error) {
       console.error("Error fetching courses:", error);
+    }finally {
+      setLoading(prev => ({...prev, courseenrollement: false}));
     }
     }
     fetchcourses()
@@ -79,7 +89,7 @@ export default function StudentCoursesPage() {
         courseId:courseId,
         studentId:userId
       })
-
+ 
       if (response){
         console.log(response.data)
         try{
@@ -127,95 +137,117 @@ export default function StudentCoursesPage() {
           <TabsTrigger value="available">Available Courses</TabsTrigger>
         </TabsList>
         <TabsContent value="enrolled" className="mt-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {courses.length === 0 ? (
-                  <p className="text-muted-foreground text-center">No courses enrolled yet.</p>
-                ) : ( courses.map((course:any,index:any) => (
-              <Card key={course.course.id} className="overflow-hidden">
-                <CardHeader className="p-0">
-                  <div className="aspect-video bg-muted relative">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <BookOpen className="h-10 w-10 text-muted-foreground/50" />
-                    </div>
+        <div className="space-y-4">
+  {loading.courseenrollement ? (
+    <div className="flex items-center justify-center h-32">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+    </div>
+  ) : (
+    <>
+      {courses.length === 0 ? (
+        <p className="text-muted-foreground text-center py-4">No courses enrolled yet.</p>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {courses.map((course: any) => (
+            <Card key={course.course.id}>
+              <CardHeader className="p-0">
+                <div className="aspect-video bg-muted relative">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <BookOpen className="h-10 w-10 text-muted-foreground/50" />
                   </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <CardTitle className="line-clamp-1 text-xl">
-                    <Link href={`/dashboard/student/courses/${course.course.id}`} className="hover:underline">
-                      {course.course.title}
-                    </Link>
-                  </CardTitle>
-                  <CardDescription className="line-clamp-2 mt-2">{course.course.description}</CardDescription>
-                  <div className="mt-4 text-sm">
-                    <p className="text-muted-foreground">Instructor: {course.course.teacher.firstName}</p>
-                    {/*<div className="mt-2 space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span>Progress</span>
-                        <span>{course.progress}%</span>
-                      </div>
-                      <Progress value={course.progress} className="h-2" />
-                    </div>*/}
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <CardTitle className="text-lg">
+                  <Link href={`/dashboard/student/courses/${course.course.id}`} className="hover:underline">
+                    {course.course.title}
+                  </Link>
+                </CardTitle>
+                <CardDescription className="line-clamp-2 mt-1">
+                  {course.course.description}
+                </CardDescription>
+                
+                <div className="mt-4 text-sm">
+                  <p className="text-muted-foreground">
+                    Instructor: {course.course.teacher.firstName}
+                  </p>
+                </div>
+
+                <div className="mt-4 flex justify-between text-sm">
+                  <div className="flex flex-col">
+                    <span className="text-muted-foreground">Chapters</span>
+                    <span className="font-medium">{course.chapterCount}</span>
                   </div>
-                  <div className="mt-4 flex justify-between text-sm">
-                    <div className="flex flex-col">
-                      <span className="text-muted-foreground">Chapters</span>
-                      <span className="font-medium">{course.chapterCount}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-muted-foreground">Lessons</span>
-                      <span className="font-medium">{course.lessonsCount}</span>
-                    </div>
+                  <div className="flex flex-col">
+                    <span className="text-muted-foreground">Lessons</span>
+                    <span className="font-medium">{course.lessonCount}</span>
                   </div>
-                  <div className="mt-4 flex justify-end">
-                    <Link href={`/dashboard/student/courses/${course.course.id}`}>
-                      <Button size="sm">Continue Learning</Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            )))}
-          </div>
+                </div>
+
+                <div className="mt-4">
+                  <Link href={`/dashboard/student/courses/${course.course.id}`} className="w-full">
+                    <Button size="sm" className="w-full">
+                      Continue Learning
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </>
+  )}
+</div>
         </TabsContent>
         <TabsContent value="available" className="mt-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {courseavailable.map((course) => (
-              <Card key={course.id} className="overflow-hidden">
-                <CardHeader className="p-0">
-                  <div className="aspect-video bg-muted relative">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <BookOpen className="h-10 w-10 text-muted-foreground/50" />
-                    </div>
+        <div className="space-y-4">
+  {loading.courseavailable ? (
+    <div className="flex items-center justify-center h-32">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+    </div>
+  )  : (
+    <>
+      {courseavailable.length === 0 ? (
+        <p className="text-muted-foreground text-center py-4">No courses available at the moment.</p>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {courseavailable.map((course) => (
+            <Card key={course.id} className="h-full flex flex-col">
+              <CardHeader className="p-0">
+                <div className="aspect-video bg-muted relative">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <BookOpen className="h-10 w-10 text-muted-foreground/50" />
                   </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <CardTitle className="line-clamp-1 text-xl">{course.title}</CardTitle>
-                  <CardDescription className="line-clamp-2 mt-2">{course.description}</CardDescription>
-                  {/*<div className="mt-4 text-sm">
-                    <p className="text-muted-foreground">Instructor: {course.teacher}</p>
-                  </div>
-                  <div className="mt-4 flex justify-between text-sm">
-                    <div className="flex flex-col">
-                      <span className="text-muted-foreground">Chapters</span>
-                      <span className="font-medium">{course.chaptersCount}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-muted-foreground">Lessons</span>
-                      <span className="font-medium">{course.lessonsCount}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-muted-foreground">Students</span>
-                      <span className="font-medium">{course.studentsCount}</span>
-                    </div>
-                  </div>*/}
-                  <div className="mt-4 flex justify-end">
-        
-                      <Button size="sm" onClick={() => handleCourseStart(course.id,course.status)}>Enroll Now</Button>
-                    
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 flex-1 flex flex-col">
+                <div className="flex-1">
+                  <CardTitle className="text-lg line-clamp-2 mb-1">
+                    {course.title}
+                  </CardTitle>
+                  <CardDescription className="line-clamp-3">
+                    {course.description}
+                  </CardDescription>
+                </div>
+                
+                <div className="mt-4">
+                  <Button 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => handleCourseStart(course.id, course.status)}
+                  >
+                    Enroll Now
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </>
+  )}
+</div>
         </TabsContent>
       </Tabs>
     </div>

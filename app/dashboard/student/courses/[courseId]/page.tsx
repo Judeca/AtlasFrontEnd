@@ -11,40 +11,7 @@ import { useState, useEffect } from "react"
 import api from "@/app/utils/axiosInstance"
 import Image from "next/image"
 import { toast } from "sonner"
-
-
-
-// Define the possible file types
-type FileType = 'PDF' | 'DOC' | 'DOCX' | 'PPT' | 'PPTX' | 'XLS' | 'XLSX' | 'TXT' | 'MP4' | 'MKV' | 'AVI' | 'FLV' | 'MOV'
-
-// Define the material interface
-interface CourseMaterial {
-  id: string
-  courseId: string | null
-  userId: string | null
-  chapterId: string | null
-  lessonId: string | null
-  fileUrl: string 
-  fileType: FileType // or use a specific enum type if you have one
-  content: string | null
-  uploadedAt: string
-}
-
-const fileTypeIcons = {
-  PDF: FileText,
-  DOC: File,
-  DOCX: File,
-  PPT: File,
-  PPTX: File,
-  XLS: File,
-  XLSX: File,
-  TXT: FileText,
-  MP4: Film,
-  MKV: Film,
-  AVI: Film,
-  FLV: Film,
-  MOV: Film
-}
+import {FileType,CourseMaterial,fileTypeIcons,isMediaFile} from "@/app/utils/fileTypes"
 
 
 
@@ -60,7 +27,7 @@ export default function CoursePage() {
   const [loading, setLoading] = useState({
     course: true,
     chapters: true,
-    quizzes: true,
+    quizzes: true, 
     materials:true
   })
   const [error, setError] = useState({
@@ -79,18 +46,18 @@ export default function CoursePage() {
       console.log(userID)
       setUserId(userID)
     }
-  },[userId] );
+  },[] );
 
 
-  //Fetch courseMaterials 
- // Fetch lesson materials
+  
+ // Fetch course materials
  useEffect(() => {
-  if(!chapterId){
+  if(!courseId){
     return;
   }
   const fetchMaterials = async () => {
     try {
-      const response = await api.get(`/coursematerials/chapter/${chapterId}`);
+      const response = await api.get(`/coursematerials/course/${courseId}`);
        if(response){
         // Filter out null fileUrls and transform data if needed
       const validMaterials = response.data.filter((material: any) => material.fileUrl !== null).map((material: any) => 
@@ -115,11 +82,11 @@ export default function CoursePage() {
   };
 
   fetchMaterials();
-}, [chapterId]);
+}, [courseId]);
 
   // Fetch course data
   useEffect(() => {
-    if(!courseId){
+    if(!courseId ||!userId){
       return;
     }
     const fetchCourseInfo = async () => {
@@ -128,18 +95,7 @@ export default function CoursePage() {
         console.log("this is the reqponse",response)
         console.log("here is resonse dataa:",response.data )
         if(response){
-          setCourse({
-            ...response.data,
-            teacher: {
-              ...response.data.teacher,
-              profilePicture: response.data.teacher.profilePicture || '/noimage.png'
-            },
-            progress: response.data.progresses?.[0] || {
-              status: 'NOT_STARTED',
-              progress: 0,
-              timeSpent: 0
-            }
-          })
+          setCourse(response.data)
          
         }else {console.log("Merde frere erreur la ")}
         console.log("here is the course ",course)
@@ -152,22 +108,19 @@ export default function CoursePage() {
       }
     }
     fetchCourseInfo()
-  }, [courseId])
+  }, [courseId,userId])
 
   // Fetch chapters with progress
   useEffect(() => {
-    if(!courseId){
+    if(!courseId ||!userId){
       return;
     }
     const fetchChapters = async () => {
       try {
-        const response = await api.get(`chapter/courses/${courseId}/chapters?userId=${userId}`)
-        const chaptersWithProgress = response.data.map((chapter: any) => ({
-          ...chapter,
-          progress: chapter.progresses[0]?.progress || 0,
-          status: chapter.progresses[0]?.status || 'NOT_STARTED'
-        }))
-        setChapters(chaptersWithProgress)
+        const response = await api.get(`chapter/courses/${courseId}/chapters?userId=${userId}`
+        )
+        console.log("Sample of courses gotten by juve:",response.data)
+        setChapters(response.data);
       } catch (err) {
         toast.error("Error Loading chapter ",{
           description:"Error Loading the chapters on your page"
@@ -177,7 +130,7 @@ export default function CoursePage() {
       }
     }
     fetchChapters()
-  }, [courseId])
+  }, [courseId,userId])
 
   // Fetch quizzes
   useEffect(() => {
@@ -212,20 +165,13 @@ export default function CoursePage() {
 
         }else{
           console.log("failed to start progression")}
-      }
+      }else{console.log("Already in start")}
      
       router.push(`/dashboard/student/courses/${courseId}/chapters/${chapterId}`)
     } catch (error) {
       console.error('Error starting chapter:', error)
      
     }
-  }
-
-  // Calculate overall course progress
-  const calculateCourseProgress = () => {
-    if (chapters.length === 0) return 0
-    const totalProgress = chapters.reduce((sum, chapter) => sum + chapter.progress, 0)
-    return Math.round(totalProgress / chapters.length)
   }
 
   if (loading.course) {
@@ -261,18 +207,22 @@ export default function CoursePage() {
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-4">
-            <Image
-              src={course.teacher.profilePicture}
-              alt={`${course.teacher.firstName} ${course.teacher.lastName}`}
-              width={48}
-              height={48}
-              className="rounded-full"
-            />
+          <Image
+            src={course.teacherPicture || "/noimage.png"}
+            alt={`${course.teacherFirstname} ${course.teacherLastname}`}
+            width={48}
+            height={48}
+            className="rounded-full object-cover"
+            style={{
+              width: 'auto',
+              height: 'auto',
+            }}
+          />
             <div>
               <h1 className="text-3xl font-bold tracking-tight">{course.title}</h1>
               <p className="text-muted-foreground">{course.description}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Created by {course.teacher.firstName} {course.teacher.lastName}
+                Created by {course.teacherFirstname} {course.teacherLastname}
               </p>
             </div>
           </div>
@@ -289,9 +239,9 @@ export default function CoursePage() {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span>Overall Progress</span>
-              <span>{course.progress.progress}%</span>
+              <span>{course.courseprogress}%</span>
             </div>
-            <Progress value={course.progress.progress} className="h-2" />
+            <Progress value={course.courseprogress} className="h-2" />
           </div>
           <div className="mt-4 flex justify-end">
             <Link href={`/dashboard/student/courses/${courseId}/rankings`}>
@@ -308,7 +258,7 @@ export default function CoursePage() {
       <Tabs defaultValue="content" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="content">Course Content</TabsTrigger>
-          <TabsTrigger value="resources">Resources</TabsTrigger>
+          <TabsTrigger value="resources">Documents</TabsTrigger>
           <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
         </TabsList>
 
@@ -352,7 +302,7 @@ export default function CoursePage() {
 
                       <div className="flex items-center justify-between">
                         <div className="text-sm text-muted-foreground">
-                          {chapter._count.lessons} {chapter._count.lessons === 1 ? "lesson" : "lessons"}
+                          {chapter.lessons} {chapter.lessons === 1 ? "lesson" : "lessons"}
                         </div>
                         <Button
                           onClick={() => handleChapterStart(chapter.id,chapter.status)}

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState,useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { FileText, Loader2 } from "lucide-react"
 import { toast } from "sonner"
@@ -19,51 +19,103 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import api from "@/app/utils/axiosInstance"
 
 interface CreateAssignmentModalProps {
   courseId: string
   chapterId: string
+  lessonId?:string
+  isLessonIdProvided:boolean
   isOpen: boolean
   onClose: () => void
 }
 
-export function CreateAssignmentModal({ courseId, chapterId, isOpen, onClose }: CreateAssignmentModalProps) {
+export function CreateAssignmentModal({ courseId, chapterId,lessonId,isLessonIdProvided, isOpen, onClose }: CreateAssignmentModalProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [userId,setUserId]=useState('')
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     dueDate: "",
-    points: "100",
+    maxScore: 100,
   })
+
+  useEffect(() => {
+    const userID = localStorage.getItem("userId"); 
+    console.log("HERE IS ",userID)
+    if (userID) {
+    console.log(userID)
+    setUserId(userID)
+    }
+    },[userId] );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+  
+    e.preventDefault();
+
+    setIsLoading(true);
+
+    if(!userId){
+      console.log("UserId is not provided")
+      return;
+    }
+
+    const requestBody: {
+      title: string;
+      description: string;
+      maxScore: number;
+      dueDate: string;
+      courseId: string;
+      chapterId: string;
+      createdBy:string;
+      lessonId?: string;  
+    } = {
+      title: formData.title,
+      description: formData.description,
+      maxScore: formData.maxScore,
+      dueDate: formData.dueDate,
+      courseId: courseId,
+      chapterId: chapterId,
+      createdBy:userId
+    };
+    
+    if (isLessonIdProvided) {
+      requestBody.lessonId = lessonId;
+    }
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const response = await api.post("/assignment/create-assignments", requestBody);
 
-      toast.success(`Assignment "${formData.title}" has been added to the chapter.`)
+      // Check for successful response
+      if (response.status >= 200 && response.status < 300) {
+        toast.success("Assignment created", {
+          description: `"${formData.title}" has been created successfully.`,
+        });
 
-      // Reset form and close modal
-      setFormData({ title: "", description: "", dueDate: "", points: "100" })
-      onClose()
-
-      // Refresh the chapter page
-      router.refresh()
+        // Reset form and close modal
+        setFormData({ title: "", description: "", dueDate: "", maxScore: 100 })
+        onClose();
+        
+        // Refresh the page to show new course
+        router.refresh();
+      } else {
+        throw new Error(response.data?.message || "Failed to create assignment");
+      }
     } catch (error) {
-      toast.error("Failed to create assignment. Please try again.")
+      toast.error("Error creating assignment", {
+        description: "Failed to create assignment. Please try again.",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -110,14 +162,14 @@ export function CreateAssignmentModal({ courseId, chapterId, isOpen, onClose }: 
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="points">Points</Label>
+                <Label htmlFor="maxScore">maxScore</Label>
                 <Input
-                  id="points"
-                  name="points"
+                  id="maxScore"
+                  name="maxScore"
                   type="number"
                   min="1"
                   placeholder="e.g., 100"
-                  value={formData.points}
+                  value={formData.maxScore}
                   onChange={handleChange}
                   required
                 />

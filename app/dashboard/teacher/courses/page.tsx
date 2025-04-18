@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { CreateCourseModal } from "@/components/create-course-modal"
+import { formatRelativeTime } from "@/app/utils/functions"
 
 export default function TeacherCoursesPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -17,46 +18,8 @@ export default function TeacherCoursesPage() {
   const [course ,setCourse]=useState<any[]>([]);
   const [userId,setUserId]=useState('')
 
-  // Mock courses data
-  const courses = [
-    {
-      id: "1",
-      title: "Introduction to Web Development",
-      description: "Learn the basics of HTML, CSS, and JavaScript",
-      chaptersCount: 4,
-      lessonsCount: 12,
-      studentsCount: 45,
-      createdAt: "2 weeks ago",
-    },
-    {
-      id: "2",
-      title: "Advanced JavaScript Concepts",
-      description: "Deep dive into modern JavaScript features and patterns",
-      chaptersCount: 6,
-      lessonsCount: 18,
-      studentsCount: 32,
-      createdAt: "1 month ago",
-    },
-    {
-      id: "3",
-      title: "React Fundamentals",
-      description: "Build interactive UIs with React",
-      chaptersCount: 5,
-      lessonsCount: 15,
-      studentsCount: 28,
-      createdAt: "3 months ago",
-    },
-    {
-      id: "4",
-      title: "Node.js Backend Development",
-      description: "Create scalable backend applications with Node.js",
-      chaptersCount: 7,
-      lessonsCount: 21,
-      studentsCount: 19,
-      createdAt: "4 months ago",
-    },
-  ]
 
+ 
 
   useEffect(() => {
     const userID = localStorage.getItem("userId"); 
@@ -69,9 +32,10 @@ export default function TeacherCoursesPage() {
 
 
   useEffect(()=>{
+    if(!userId)return;
     const fetchCourses = async () => {
       try {
-        const response = await api.get(`/course/getAll-courses`);
+        const response = await api.get(`/course/teacher-courses/${userId}`);
         setCourse(response.data);
       } catch (error) {
         console.error("Error fetching chapters:", error);
@@ -150,11 +114,11 @@ export default function TeacherCoursesPage() {
                 </div> */}
                  <div className="flex flex-col">
                   <span className="text-muted-foreground">Updated</span>
-                  <span className="font-medium">{course.updateAt}</span>
+                  <span className="font-medium">{formatRelativeTime(course.updatedAt)}</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-muted-foreground">Created</span>
-                  <span className="font-medium">{course.createdAt}</span>
+                  <span className="font-medium">{formatRelativeTime(course.createdAt)}</span>
                 </div>
               </div>
               <div className="mt-4 flex justify-end">

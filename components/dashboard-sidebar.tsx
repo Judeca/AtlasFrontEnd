@@ -84,6 +84,17 @@ export function DashboardSidebar({ userType, children }: DashboardSidebarProps) 
     },
   ]
 
+
+  // Example logout handler
+const handleLogout = () => {
+  // Clear cookies
+  document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  localStorage.removeItem("userId")
+  // Redirect to login page with full page reload
+  window.location.href = "/signIn";
+};
+
   const navItems = userType === "teacher" ? teacherNavItems : studentNavItems
 
   return (
@@ -120,7 +131,7 @@ export function DashboardSidebar({ userType, children }: DashboardSidebarProps) 
                 <div className="font-medium">{userType === "teacher" ? "rugal Yurib" : "Jane Smith"}</div>
                 <div className="text-xs text-muted-foreground">{userType === "teacher" ? "Teacher" : "Student"}</div>
               </div>
-              <Button variant="ghost" size="icon" className="ml-auto">
+              <Button onClick={handleLogout} variant="ghost" size="icon" className="ml-auto">
                 <LogOut className="h-4 w-4" />
                 <span className="sr-only">Log out</span>
               </Button>

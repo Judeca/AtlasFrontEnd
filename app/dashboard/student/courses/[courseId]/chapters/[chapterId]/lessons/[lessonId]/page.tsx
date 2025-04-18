@@ -9,51 +9,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import api from "@/app/utils/axiosInstance"
 import { useParams } from "next/navigation"
+import {FileType,CourseMaterial,fileTypeIcons,isMediaFile} from "@/app/utils/fileTypes"
+import {formatDuration} from "@/app/utils/functions"
 
-interface LessonPageProps {
-  params: {
-    courseId: string
-    chapterId: string
-    lessonId: string
-  }
-}
 
-// Define the possible file types
-type FileType = 'PDF' | 'DOC' | 'DOCX' | 'PPT' | 'PPTX' | 'XLS' | 'XLSX' | 'TXT' | 'MP4' | 'MKV' | 'AVI' | 'FLV' | 'MOV'
-
-// Define the material interface
-interface CourseMaterial {
-  id: string
-  courseId: string | null
-  userId: string | null
-  chapterId: string | null
-  lessonId: string | null
-  fileUrl: string 
-  fileType: FileType // or use a specific enum type if you have one
-  content: string | null
-  uploadedAt: string
-}
-
-const fileTypeIcons = {
-  PDF: FileText,
-  DOC: File,
-  DOCX: File,
-  PPT: File,
-  PPTX: File,
-  XLS: File,
-  XLSX: File,
-  TXT: FileText,
-  MP4: Film,
-  MKV: Film,
-  AVI: Film,
-  FLV: Film,
-  MOV: Film
-}
 
 export default function LessonPage() {
   const { courseId, chapterId,lessonId } = useParams() as { courseId: string; chapterId: string; lessonId: string }
   const [lesson, setLesson] = useState<any>(null)
   const [materials, setMaterials] = useState<CourseMaterial[]>([])
+  const[userId,setUserId]=useState('')
   const [loading, setLoading] = useState({
     lesson: true,
     materials: true
@@ -65,16 +30,45 @@ export default function LessonPage() {
   const [isCompleted, setIsCompleted] = useState(false)
   
 
+    //fetchIDof User from localstorage
+    useEffect(() => {
+      const userID = localStorage.getItem("userId"); 
+      console.log("HERE IS ",userID)
+      if (userID) {
+        console.log(userID)
+        setUserId(userID)
+      }
+    },[] );
+
+
+//to refresh user progression in case a lesson is added after 
+useEffect(()=>{
+  if(!userId ||!lessonId ||!chapterId || !courseId){return;}
+ const updateprogresses= async ()=>{
+  console.log("here we update")
+  const response = await api.put(`/lessonprogress/lessoncreation-progress-update/${lessonId}`, {
+    userId: userId,
+    chapterId:chapterId,
+    courseId:courseId
+  }) 
+  if(response){console.log("the update was well done ")}
+ }
+ updateprogresses()
+},[userId,lessonId,chapterId,courseId])
+
+
+
   // Fetch lesson data
   useEffect(() => {
-    if(!lessonId){
+    if(!lessonId ||!userId){
       return;
     }
     const fetchLesson = async () => {
       try {
-        const response = await api.get(`/lesson/lessons/${lessonId}`)
+        const response = await api.get(`/lesson/lessons/${lessonId}?userId=${userId}`)
+        console.log("here is data for us to fix prob:",response.data)
         setLesson(response.data)
-        setIsCompleted(response.data.progresses[0]?.status === 'COMPLETED')
+        setIsCompleted(response.data.lessonstatus === 'COMPLETED')
        
       } catch (err) {
         toast.error("Error Loading lesson", {
@@ -86,7 +80,7 @@ export default function LessonPage() {
       }
     }
     fetchLesson()
-  }, [lessonId])
+  }, [lessonId,userId])
 
   // Fetch lesson materials
   useEffect(() => {
@@ -101,7 +95,7 @@ export default function LessonPage() {
         const validMaterials = response.data.filter((material: any) => material.fileUrl !== null).map((material: any) => 
           ({
           ...material,
-          fileType: material.fileType || 'UNKNOWN', // Default value
+          fileType: material.fileType || 'UNKNOWN', 
         }));
 
       setMaterials(validMaterials);
@@ -127,7 +121,7 @@ export default function LessonPage() {
     
       // Update progress to completed
       const response = await api.put(`/lessonprogress/lesson-progress-update/${lessonId}`, {
-        userId: localStorage.getItem('userId'),
+        userId: userId,
         chapterId:chapterId,
         courseId:courseId
       })
@@ -146,6 +140,7 @@ export default function LessonPage() {
       })
     }
   }
+
 
   if (loading.lesson) {
     return (
@@ -179,7 +174,7 @@ export default function LessonPage() {
         </Link>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{lesson.title}</h1>
-          <p className="text-muted-foreground">Chapter: {lesson.chapter?.title}</p>
+          <p className="text-muted-foreground">Chapter: {lesson.lessonchapter}</p>
         </div>
       </div>
 
@@ -197,14 +192,14 @@ export default function LessonPage() {
                 {isCompleted && (
                   <Badge variant="outline" className="text-green-500 border-green-500">
                     <CheckCircle className="mr-1 h-3 w-3" />
-                    Completed
+                    Completed in {formatDuration(lesson.lessontimespenttofinish)}
                   </Badge>
                 )}
               </div>
               <CardDescription>
                 <div className="flex items-center gap-2 text-sm">
                   <BookOpen className="h-4 w-4" />
-                  <span>{lesson.duration} minutes</span>
+                  <span>{formatDuration(lesson.duration)} minute</span>
                 </div>
               </CardDescription>
             </CardHeader>
@@ -237,11 +232,12 @@ export default function LessonPage() {
                 <div className="space-y-4">
                   {materials.map((material) => {
                      const FileIcon = material.fileType ? fileTypeIcons[material.fileType] : File
+                     const IconComponent = FileIcon || FileText;
                     return (
                       <div key={material.id} className="flex items-center justify-between rounded-md border p-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                            <FileIcon className="h-5 w-5 text-muted-foreground" />
+                            <IconComponent className="h-5 w-5 text-muted-foreground" />
                           </div>
                           <div>
                             <p className="font-medium">{material.fileUrl?.split('/').pop() || 'Untitled Resource'}</p>
@@ -270,7 +266,7 @@ export default function LessonPage() {
               )}
             </CardContent>
             <CardFooter className="flex justify-between">
-              <div>
+              {/*<div>
                 {lesson.prevLessonId ? (
                   <Link
                     href={`/dashboard/student/courses/${courseId}/chapters/${chapterId}/lessons/${lesson.prevLessonId}`}
@@ -286,7 +282,7 @@ export default function LessonPage() {
                     Previous Lesson
                   </Button>
                 )}
-              </div>
+              </div>*/}
               <div className="flex gap-2">
                 {!isCompleted && (
                   <Button onClick={handleMarkComplete}>

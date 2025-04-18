@@ -24,7 +24,7 @@ interface QuizResult {
   ranking?: number
   totalParticipants?: number
   questions: {
-    id: string
+    questionId: string
     text: string
     type: string
     points: number
@@ -258,7 +258,7 @@ export default function QuizResultsPage() {
         <CardContent>
           <div className="space-y-6">
             {results.questions.map((question, index) => (
-              <div key={question.id} className="rounded-md border p-4">
+              <div key={question.questionId} className="rounded-md border p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">Q{index + 1}</Badge>

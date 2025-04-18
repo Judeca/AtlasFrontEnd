@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import api from "@/app/utils/axiosInstance"
 
 interface CreateLessonModalProps {
   courseId: string
@@ -34,6 +35,7 @@ export function CreateLessonModal({ courseId, chapterId, isOpen, onClose }: Crea
     title: "",
     content: "",
     duration: "",
+
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -41,35 +43,44 @@ export function CreateLessonModal({ courseId, chapterId, isOpen, onClose }: Crea
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+
+    setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const response = await api.post("/lesson/create-lessons", {
+        title: formData.title,
+        content: formData.content,
+        duration:formData.duration,
+        chapterId: chapterId
+      });
 
-      // In a real app, you would create the lesson in the database here
-      // const response = await fetch(`/api/courses/${courseId}/chapters/${chapterId}/lessons`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // })
+      // Check for successful response
+      if (response.status >= 200 && response.status < 300) {
+        toast.success("Lesson created", {
+          description: `"${formData.title}" has been created successfully.`,
+        });
 
-      toast.success(`"${formData.title}" has been added to the chapter.`) // ✅ Sonner toast
-
-      // Reset form and close modal
-      setFormData({ title: "", content: "", duration: "" })
-      onClose()
-
-      // Refresh the course page
-      router.refresh()
+        // Reset form and close modal
+        setFormData({ title: "", content: "", duration: "" })
+        onClose();
+        
+        // Refresh the page to show new course
+        router.refresh();
+      } else {
+        throw new Error(response.data?.message || "Failed to create lesson");
+      }
     } catch (error) {
-      toast.error("Failed to create lesson. Please try again.") // ✅ Sonner toast
+      toast.error("Error creating lesson", {
+        description: "Failed to create lesson. Please try again.",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

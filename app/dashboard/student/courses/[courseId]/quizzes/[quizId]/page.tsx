@@ -48,10 +48,24 @@ export default function QuizPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0) // in seconds
   const [attemptId, setAttemptId] = useState("")
+  const [userId, setUserId] = useState("")
   const [timeTaken, setTimeTaken] = useState(0)
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(true)
   const startTime = useRef(Date.now())
+
+
+
+  useEffect(() => { 
+
+    const userID = localStorage.getItem("userId");  
+    console.log("HERE IS ",userID) 
+    if (userID) { 
+    console.log(userID) 
+    setUserId(userID) 
+    } 
+    
+    },[userId] ); 
 
   // Fetch quiz data from API
   useEffect(() => {
@@ -181,7 +195,7 @@ export default function QuizPage() {
 
     const attemptCreation = {
       quizId: quizId,
-      studentId: localStorage.getItem("studentId"),
+      studentId: userId,
       timeTaken: finalTimeTaken
     }
 

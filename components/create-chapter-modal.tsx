@@ -33,7 +33,6 @@ export function CreateChapterModal({ courseId, isOpen, onClose }: CreateChapterM
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    order:1
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -50,28 +49,27 @@ export function CreateChapterModal({ courseId, isOpen, onClose }: CreateChapterM
       const response = await api.post("chapter/create-chapters", {
         title: formData.title,
         description: formData.description,
-        order: formData.order,
         courseId: courseId
       });
 
       // Check for successful response
       if (response.status >= 200 && response.status < 300) {
-        toast.success("Course created", {
+        toast.success("Chapter created", {
           description: `"${formData.title}" has been created successfully.`,
         });
 
         // Reset form and close modal
-        setFormData({ title: "", description: "",order:1 });
+        setFormData({ title: "", description: "" });
         onClose();
         
         // Refresh the page to show new course
         router.refresh();
       } else {
-        throw new Error(response.data?.message || "Failed to create course");
+        throw new Error(response.data?.message || "Failed to create chapter");
       }
     } catch (error) {
-      toast.error("Error creating course", {
-        description: "Failed to create course. Please try again.",
+      toast.error("Error creating chapter", {
+        description: "Failed to create chapter. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -107,17 +105,6 @@ export function CreateChapterModal({ courseId, isOpen, onClose }: CreateChapterM
                 name="description"
                 placeholder="Provide a brief description of this chapter"
                 value={formData.description}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="order">order</Label>
-              <Textarea
-                id="order"
-                name="description"
-                placeholder="Enter the chapter number"
-                value={formData.order}
                 onChange={handleChange}
                 required
               />
