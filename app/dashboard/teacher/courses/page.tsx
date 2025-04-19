@@ -31,7 +31,7 @@ export default function TeacherCoursesPage() {
   },[userId] );
 
 
-  if(!userId)return;
+ 
   const fetchCourses = async () => {
     try {
       const response = await api.get(`/course/teacher-courses/${userId}`);
@@ -41,6 +41,7 @@ export default function TeacherCoursesPage() {
     }
   };
   useEffect(()=>{
+    if(!userId){return;}
   
     fetchCourses();
 
