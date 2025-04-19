@@ -48,41 +48,42 @@ export default function CoursePage() {
 
 
  //fetch course Info
+
+ const fetchCourse = async () => {
+  try {
+    const response = await api.get(`/course/getcourse-only/${courseId}`);
+    console.log("course Info data :",response.data)
+    setCourse(response.data);
+  } catch (error) {
+    console.error("Error fetching chapters:", error);
+  }
+};
+
  useEffect(()=>{
   if(!courseId){
     return;
   }
-  const fetchCourse = async () => {
-    try {
-      const response = await api.get(`/course/getcourse-only/${courseId}`);
-      console.log("course Info data :",response.data)
-      setCourse(response.data);
-    } catch (error) {
-      console.error("Error fetching chapters:", error);
-    }
-  };
-
   fetchCourse();
 
 },[])
 
 
   //fetch chapters in a course
+  const fetchChapters = async () => {
+    try {
+      const response = await api.get(`/chapter/courses/${courseId}/chapters`);
+      setChapters(response.data);
+    } catch (error) {
+      console.error("Error fetching chapters:", error);
+    } finally {
+      setLoading(prev => ({...prev, chapter: false}));
+    }
+  };
+
   useEffect(()=>{
     if(!courseId){
       return;
     }
-    const fetchChapters = async () => {
-      try {
-        const response = await api.get(`/chapter/courses/${courseId}/chapters`);
-        setChapters(response.data);
-      } catch (error) {
-        console.error("Error fetching chapters:", error);
-      } finally {
-        setLoading(prev => ({...prev, chapter: false}));
-      }
-    };
-
     fetchChapters();
 
   },[])
@@ -220,6 +221,12 @@ const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
   } finally {
     setIsUploading(false);
   }
+};
+
+const handleChapterCreated = () => {
+  // Your refresh logic here
+  console.log("Assignment created successfully, refresh data");
+  fetchChapters(); // Example refresh function
 };
 
 
@@ -590,6 +597,7 @@ const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       <CreateChapterModal
         courseId={courseId}
         isOpen={isCreateChapterModalOpen}
+        onSuccess={()=>handleChapterCreated()}
         onClose={() => setIsCreateChapterModalOpen(false)}
       />
       

@@ -31,20 +31,26 @@ export default function TeacherCoursesPage() {
   },[userId] );
 
 
+  if(!userId)return;
+  const fetchCourses = async () => {
+    try {
+      const response = await api.get(`/course/teacher-courses/${userId}`);
+      setCourse(response.data);
+    } catch (error) {
+      console.error("Error fetching chapters:", error);
+    }
+  };
   useEffect(()=>{
-    if(!userId)return;
-    const fetchCourses = async () => {
-      try {
-        const response = await api.get(`/course/teacher-courses/${userId}`);
-        setCourse(response.data);
-      } catch (error) {
-        console.error("Error fetching chapters:", error);
-      }
-    };
-
+  
     fetchCourses();
 
   },)
+
+  const handleCourseCreated = () => {
+    // Your refresh logic here
+    console.log("Assignment created successfully, refresh data");
+    fetchCourses(); // Example refresh function
+  };
 
   return (
     <div className="grid gap-6">
@@ -133,7 +139,11 @@ export default function TeacherCoursesPage() {
         ))}
       </div>
 
-      <CreateCourseModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} userId={userId} />
+      <CreateCourseModal 
+      isOpen={isCreateModalOpen} 
+      onClose={() => setIsCreateModalOpen(false)} 
+      onSuccess={()=>handleCourseCreated()}
+      userId={userId} />
     </div>
   )
 }

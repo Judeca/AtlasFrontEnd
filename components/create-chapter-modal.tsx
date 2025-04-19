@@ -25,9 +25,10 @@ interface CreateChapterModalProps {
   courseId: string
   isOpen: boolean
   onClose: () => void
+  onSuccess: () => void
 }
 
-export function CreateChapterModal({ courseId, isOpen, onClose }: CreateChapterModalProps) {
+export function CreateChapterModal({ courseId, isOpen,onSuccess, onClose }: CreateChapterModalProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -60,6 +61,7 @@ export function CreateChapterModal({ courseId, isOpen, onClose }: CreateChapterM
 
         // Reset form and close modal
         setFormData({ title: "", description: "" });
+        onSuccess()
         onClose();
         
         // Refresh the page to show new course

@@ -24,10 +24,11 @@ import api from "@/app/utils/axiosInstance"
 interface CreateCourseModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess: () => void;
   userId:string
 }
 
-export function CreateCourseModal({ isOpen, onClose,userId }: CreateCourseModalProps) {
+export function CreateCourseModal({ isOpen, onClose,onSuccess,userId }: CreateCourseModalProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -68,6 +69,7 @@ export function CreateCourseModal({ isOpen, onClose,userId }: CreateCourseModalP
 
         // Reset form and close modal
         setFormData({ title: "", description: "" });
+        onSuccess();
         onClose();
         
         // Refresh the page to show new course
