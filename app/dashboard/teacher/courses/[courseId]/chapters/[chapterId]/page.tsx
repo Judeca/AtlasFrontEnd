@@ -66,26 +66,25 @@ export default function ChapterPage() {
   }, [courseId, chapterId])
 
   // Fetch lessons info in a chapter
+  const fetchLessons = async () => {
+    try {
+      const response = await api.get(`lesson/chapters/${chapterId}/lessons`)
+      setLessons(response.data || [])
+    } catch (error) {
+      console.error("Error fetching lessons:", error)
+      setLessons([])
+    } finally {
+      setLoading(prev => ({ ...prev, lessons: false }))
+    }
+  }
   useEffect(() => {
     if(!chapterId){
       return;
     }
-    const fetchLessons = async () => {
-      try {
-        const response = await api.get(`lesson/chapters/${chapterId}/lessons`)
-        setLessons(response.data || [])
-      } catch (error) {
-        console.error("Error fetching lessons:", error)
-        setLessons([])
-      } finally {
-        setLoading(prev => ({ ...prev, lessons: false }))
-      }
-    }
-
-    if (chapterId) {
       fetchLessons()
-    }
+    
   }, [chapterId])
+
 
    // Fetch assignments info in a chapter
    useEffect(() => {
@@ -115,35 +114,37 @@ export default function ChapterPage() {
 
 
     // Fetch chapter materials
+    const fetchMaterials = async () => {
+      try {
+        const response = await api.get(`/coursematerials/chapter/${chapterId}`);
+         if(response){
+          // Filter out null fileUrls and transform data if needed
+        const validMaterials = response.data.filter((material: any) => material.fileUrl !== null).map((material: any) => 
+          ({
+          ...material,
+          fileType: material.fileType || 'UNKNOWN', // Default value
+        }));
+  
+      setMaterials(validMaterials);
+         }else {console.log("error juve at response")}
+        
+        
+      } catch (err) {
+        console.error(error,err)
+        console.log("here is the error:" ,err,"and this also:",error )
+        toast.error("Error Loading materials", {
+          description: "Failed to load course materials"
+        });
+      } finally {
+        setLoading(prev => ({...prev, materials: false}));
+      }
+    };
+
 useEffect(() => {
   if(!courseId){
     return;
   }
-  const fetchMaterials = async () => {
-    try {
-      const response = await api.get(`/coursematerials/chapter/${chapterId}`);
-       if(response){
-        // Filter out null fileUrls and transform data if needed
-      const validMaterials = response.data.filter((material: any) => material.fileUrl !== null).map((material: any) => 
-        ({
-        ...material,
-        fileType: material.fileType || 'UNKNOWN', // Default value
-      }));
-
-    setMaterials(validMaterials);
-       }else {console.log("error juve at response")}
-      
-      
-    } catch (err) {
-      console.error(error,err)
-      console.log("here is the error:" ,err,"and this also:",error )
-      toast.error("Error Loading materials", {
-        description: "Failed to load course materials"
-      });
-    } finally {
-      setLoading(prev => ({...prev, materials: false}));
-    }
-  };
+ 
 
   fetchMaterials();
 }, [chapterId]);
@@ -168,11 +169,12 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
   try {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("chapterId", chapterId);
+    formData.append("chapterId", chapterId); 
+    formData.append("courseId", courseId);
 
     // Determine file type and select appropriate upload endpoint
      const isMediaFiletrue = isMediaFile(file);
-    console.log("Here is Media file",isMediaFiletrue)
+    console.log("Here is Media file",isMediaFiletrue) 
     const uploadEndpoint = isMediaFiletrue ? '/coursematerials/upload'  :'/uploadthing/api/uploadcreate' ;
 
     // Upload to appropriate service
@@ -193,7 +195,7 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
     }
 
     toast.success(` uploaded successfully`);
-    
+    fetchMaterials();
   } catch (error) {
     console.error("Upload error:", error);
     toast.error(
@@ -225,13 +227,13 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
       const formData = new FormData();
       formData.append("file", file);
       formData.append("courseId", courseId);
-      formData.append("chapterId", chapterId);
+      formData.append("chapterId", chapterId); 
   
       // Determine file type and select appropriate upload endpoint
       const fileType = file.type.split('/')[0]; // 'image', 'video', etc.
       const isMediaFiletrue = isMediaFile(file);
       console.log("Here is Media file",isMediaFiletrue)
-      const uploadEndpoint = isMediaFiletrue ? '/coursematerials/upload'  :'/coursematerials/upload' ;
+      //const uploadEndpoint = isMediaFiletrue ? '/coursematerials/upload'  :'/coursematerials/upload' ;
   
       // Get file extension for additional validation if needed
       const fileExt = file.name.split('.').pop()?.toUpperCase();
@@ -285,16 +287,25 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
       toast.success(`${file.name} uploaded successfully`);
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error(
-        error instanceof Error 
-          ? error.message 
-          : "File upload failed.File type may not be supported change and  Please try again."
+      toast.error("Video and Images are not allowed ",{
+          description: "File upload failed.File type may not be supported change and  Please try again."}
       );
     } finally {
       setIsUploading(false);
     }
   };
 
+  const handleAssignmentCreated = () => {
+    // Your refresh logic here
+    console.log("Assignment created successfully, refresh data");
+    fetchAssignments(); // Example refresh function
+  };
+
+  const handleLessonCreated = () => {
+    // Your refresh logic here
+    console.log("Assignment created successfully, refresh data");
+    fetchLessons(); // Example refresh function
+  };
   
 
   if (loading.chapter) {
@@ -346,7 +357,7 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
 
       <Tabs defaultValue="lessons" className="w-full">
         <div className="flex justify-between items-center">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="lessons" onClick={() => setActiveTab("lessons")}>
               Lessons
             </TabsTrigger>
@@ -360,10 +371,7 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
           </TabsList>
           
           
-            <Button onClick={() => setIsCreateLessonModalOpen(true)}>
-              <FilePlus className="mr-2 h-4 w-4" />
-              Add Lesson
-            </Button>
+           
           
             
           
@@ -374,6 +382,10 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
             <CardHeader>
               <CardTitle>Chapter Lessons</CardTitle>
               <CardDescription>Manage the lessons in this chapter</CardDescription>
+              <Button onClick={() => setIsCreateLessonModalOpen(true)}>
+              <FilePlus className="mr-2 h-4 w-4" />
+              Add Lesson
+            </Button>
             </CardHeader>
             <CardContent>
               {loading.lessons ? (
@@ -692,6 +704,7 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
         courseId={courseId}
         chapterId={chapterId}
         isOpen={isCreateLessonModalOpen}
+        onSuccess={()=>handleLessonCreated()}
         onClose={() => setIsCreateLessonModalOpen(false)}
       />
 
@@ -700,6 +713,7 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
         chapterId={chapterId}
         isLessonIdProvided={false}
         isOpen={isCreateAssignmentModalOpen}
+        onSuccess={()=>handleAssignmentCreated()}
         onClose={() => setIsCreateAssignmentModalOpen(false)}
       />
 

@@ -98,35 +98,37 @@ export default function LessonPage() {
 
 
 // Fetch lesson materials
+const fetchMaterials = async () => {
+  try {
+    const response = await api.get(`/coursematerials/lesson/${lessonId}`);
+     if(response){
+      // Filter out null fileUrls and transform data if needed
+    const validMaterials = response.data.filter((material: any) => material.fileUrl !== null).map((material: any) => 
+      ({
+      ...material,
+      fileType: material.fileType || 'UNKNOWN', // Default value
+    }));
+
+  setMaterials(validMaterials);
+     }else {console.log("error juve at response")}
+    
+    
+  } catch (err) {
+    console.error(error,err)
+    console.log("here is the error:" ,err,"and this also:",error )
+    toast.error("Error Loading materials", {
+      description: "Failed to load lesson materials"
+    });
+  } finally {
+    setLoading(prev => ({...prev, materials: false}));
+  }
+};
+
 useEffect(() => {
   if(!lessonId){
     return;
   }
-  const fetchMaterials = async () => {
-    try {
-      const response = await api.get(`/coursematerials/lesson/${lessonId}`);
-       if(response){
-        // Filter out null fileUrls and transform data if needed
-      const validMaterials = response.data.filter((material: any) => material.fileUrl !== null).map((material: any) => 
-        ({
-        ...material,
-        fileType: material.fileType || 'UNKNOWN', // Default value
-      }));
-
-    setMaterials(validMaterials);
-       }else {console.log("error juve at response")}
-      
-      
-    } catch (err) {
-      console.error(error,err)
-      console.log("here is the error:" ,err,"and this also:",error )
-      toast.error("Error Loading materials", {
-        description: "Failed to load lesson materials"
-      });
-    } finally {
-      setLoading(prev => ({...prev, materials: false}));
-    }
-  };
+  
 
   fetchMaterials();
 }, [lessonId]);
@@ -151,6 +153,7 @@ useEffect(() => {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("lessonId", lessonId);
+      formData.append("courseId", courseId); 
   
       // Determine file type and select appropriate upload endpoint
       const isMediaFiletrue = isMediaFile(file);
@@ -175,6 +178,7 @@ useEffect(() => {
       }
   
       toast.success(` uploaded successfully`);
+      fetchMaterials();
       fetchLesson(); // Refresh materials count
     } catch (error) {
       console.error("Upload error:", error);

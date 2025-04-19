@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { BookOpen, Search } from "lucide-react"
+import { BookOpen, FileText, Loader2, Search } from "lucide-react"
 import { useState,useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,12 +17,13 @@ export default function StudentCoursesPage() {
   const [courses ,setCourses]=useState<any>([])
   const [courseavailable ,setCourseavailable]=useState<any[]>([]);
   const [userId,setUserId]=useState<any>("")
+  const [loadingCourseId, setLoadingCourseId] = useState<string | null>(null);
   
   const [loading, setLoading] = useState({
     courseavailable: true,
     courseenrollement: true,
     quizzes: true,
-    materials:true
+    materials:true,
   })
   
   useEffect(() => {
@@ -69,7 +70,6 @@ export default function StudentCoursesPage() {
     const fetchcourses= async ()=>{
     try{
       const response =await api.get (`/courseenrollement/courses/enrolled/${userId}`)
-      console.log("course enrol",response.data)
       setCourses(response.data)  
     } catch(error) {
       console.error("Error fetching courses:", error);
@@ -82,6 +82,8 @@ export default function StudentCoursesPage() {
 
 
   const handleCourseStart= async (courseId:string,coursestatus:string)=>{
+
+    setLoadingCourseId(courseId);
 
     try{
       if (coursestatus=='NOT_STARTED') {
@@ -98,7 +100,6 @@ export default function StudentCoursesPage() {
             userId:userId
           },)
           if (responses){
-            console.log("good creation of course progress")
             router.push(`/dashboard/student/courses/${courseId}`)
           }else{console.log("bad creation of course progress")}
 
@@ -111,6 +112,8 @@ export default function StudentCoursesPage() {
       }else {console.log("Failed to enrol and to create course Progresse")}
     } catch(error) {
       console.error("Error fetching courses:", error);
+    }finally {
+      setLoadingCourseId(null);
     }
 
 
@@ -232,12 +235,22 @@ export default function StudentCoursesPage() {
                 </div>
                 
                 <div className="mt-4">
-                  <Button 
+                  <Button  
                     size="sm" 
                     className="w-full"
                     onClick={() => handleCourseStart(course.id, course.status)}
-                  >
-                    Enroll Now
+                    disabled={loadingCourseId === course.id}
+                  >{loadingCourseId === course.id ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enrolling...
+                    </>
+                  ) : (
+                    <>
+                      Enroll Now
+                    </>
+                  )}
+                    
                   </Button>
                 </div>
               </CardContent>

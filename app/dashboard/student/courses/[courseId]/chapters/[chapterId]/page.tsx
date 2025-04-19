@@ -197,6 +197,7 @@ const handleAssignmentSubmit = async (e: React.ChangeEvent<HTMLInputElement>, as
     const formData = new FormData();
     formData.append("file", file);
     
+    
     const uploadResponse = await api.post("/uploadthing/api/upload", formData, {
       headers: {
         "Content-Type": "multipart/form-data"

@@ -129,10 +129,6 @@ export default function CoursePage() {
 
 
   // Fetch course materials
-useEffect(() => {
-  if(!courseId){
-    return;
-  }
   const fetchMaterials = async () => {
     try {
       const response = await api.get(`/coursematerials/course/${courseId}`);
@@ -159,6 +155,10 @@ useEffect(() => {
     }
   };
 
+useEffect(() => {
+  if(!courseId){
+    return;
+  }
   fetchMaterials();
 }, [courseId]);
 
@@ -208,6 +208,7 @@ const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     }
 
     toast.success(` uploaded successfully`);
+    fetchMaterials();
     
   } catch (error) {
     console.error("Upload error:", error);

@@ -28,9 +28,11 @@ interface CreateAssignmentModalProps {
   isLessonIdProvided:boolean
   isOpen: boolean
   onClose: () => void
+  onSuccess: () => void;
+
 }
 
-export function CreateAssignmentModal({ courseId, chapterId,lessonId,isLessonIdProvided, isOpen, onClose }: CreateAssignmentModalProps) {
+export function CreateAssignmentModal({ courseId, chapterId,lessonId,isLessonIdProvided, isOpen, onClose,onSuccess }: CreateAssignmentModalProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [userId,setUserId]=useState('')
@@ -101,6 +103,7 @@ export function CreateAssignmentModal({ courseId, chapterId,lessonId,isLessonIdP
 
         // Reset form and close modal
         setFormData({ title: "", description: "", dueDate: "", maxScore: 100 })
+        onSuccess();
         onClose();
         
         // Refresh the page to show new course
