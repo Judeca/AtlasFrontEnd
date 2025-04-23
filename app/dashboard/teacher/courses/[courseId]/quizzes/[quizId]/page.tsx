@@ -90,6 +90,11 @@ return (
                     </div>
                   </div>
                   <p className="font-medium mt-2">{question.text}</p>
+                  <div>{question.fileName &&  <img 
+                        src={question.fileUrl} 
+                        alt={question.fileName || "Question image"}
+                        className="max-h-40 rounded-md border"
+                      />}</div>
                   <div className="mt-2 space-y-2">
                     {question.options.map((option:any) => (
                       <div key={option.id} className="flex items-center gap-2">

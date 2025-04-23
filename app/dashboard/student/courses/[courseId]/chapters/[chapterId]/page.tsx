@@ -15,6 +15,7 @@ import {FileType,CourseMaterial,fileTypeIcons,isMediaFile} from "@/app/utils/fil
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {formatDuration} from "@/app/utils/functions"
+import { IconLinkWithLoading } from "@/components/icon-link-with-loading"
 
 
 export default function ChapterPage() {
@@ -28,6 +29,7 @@ export default function ChapterPage() {
   const [assignmentId,setAssignmentId]=useState<any>("")
   const [isUploading, setIsUploading] = useState(false)
   const [materials, setMaterials] = useState<CourseMaterial[]>([])
+
   const [loading, setLoading] = useState({
     chapter: true,
     lessons: true,
@@ -39,7 +41,9 @@ export default function ChapterPage() {
     lessons: null,
     assignments: null,
     materials:null
-  })
+  }) 
+  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingLessonid, setIsLoadingLessonId] = useState("")
 
 
   
@@ -270,7 +274,8 @@ const handleAssignmentSubmit = async (e: React.ChangeEvent<HTMLInputElement>, as
 
   // Handle lesson start/continue
   const handleLessonStart = async (lessonId: string, completed: string) => {
-
+    setIsLoadingLessonId(lessonId)
+     setIsLoading(true)
     if(!userId){
       return;
     }
@@ -314,22 +319,25 @@ const handleAssignmentSubmit = async (e: React.ChangeEvent<HTMLInputElement>, as
         <div className="text-red-500">
           Failed to load chapter
         </div>
-        <Link href={`/dashboard/student/courses/${courseId}`}>
-          <Button variant="outline">Back to course</Button>
-        </Link>
+        <IconLinkWithLoading
+          href={`/dashboard/student/courses/${courseId}`}
+          icon={<ArrowLeft className="h-4 w-4" />}
+          srText="Back to course"
+          variant="ghost"
+        /> 
       </div>
-    )
+    ) 
   }
 
   return (
     <div className="grid gap-6">
       <div className="flex items-center gap-2">
-        <Link href={`/dashboard/student/courses/${courseId}`}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back to course</span>
-          </Button>
-        </Link>
+      <IconLinkWithLoading
+          href={`/dashboard/student/courses/${courseId}`}
+          icon={<ArrowLeft className="h-4 w-4" />}
+          srText="Back to course"
+          variant="ghost"
+        /> 
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{chapter.title}</h1>
           <p className="text-muted-foreground">
@@ -376,7 +384,7 @@ const handleAssignmentSubmit = async (e: React.ChangeEvent<HTMLInputElement>, as
                 <div className="text-red-500 text-center py-4">
                   Failed to load lessons
                 </div>
-              ) : (
+              ) :lessons.length > 0 ? (
                 <div className="space-y-4">
                   {lessons.sort((a, b) => a.order - b.order).map((lesson) => (
                     <div key={lesson.id} className="flex items-center justify-between rounded-md border p-4">
@@ -398,16 +406,33 @@ const handleAssignmentSubmit = async (e: React.ChangeEvent<HTMLInputElement>, as
                       </div>
                       <Button
                         onClick={() => handleLessonStart(lesson.id, lesson.completed)}
+                        disabled={isLoadingLessonid===lesson.id}
                       >
-                        {lesson.completed === 'NOT_STARTED' 
-                            ? 'Start Lesson'
-                            : lesson.completed === 'IN_PROGRESS'
-                            ? 'Continue Lesson'
-                            : 'View Lesson'}
-                        <ChevronRight className="ml-2 h-4 w-4" />
+                        {isLoadingLessonid===lesson.id ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>{lesson.completed === 'NOT_STARTED' 
+                  ? 'Start Lesson'
+                  : lesson.completed === 'IN_PROGRESS'
+                  ? 'Continue Lesson'
+                  : 'View Lesson'}
+              <ChevronRight className="ml-2 h-4 w-4" /></>
+              )}
                       </Button>
+
                     </div>
                   ))}
+                </div>
+              ):(
+                <div className="rounded-md border border-dashed p-6 text-center">
+                  <File className="mx-auto h-8 w-8 text-muted-foreground" />
+                  <h3 className="mt-2 font-medium">No Lessons yet</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    There are no Lessons for this chapter
+                  </p>
                 </div>
               )}
             </CardContent>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
 import api from "@/app/utils/axiosInstance"
+import { LinkWithLoading } from "@/components/link-with-loading"
 
 interface Course {
   id: string
@@ -202,11 +203,12 @@ export default function TeacherDashboard() {
                       </div>
                     </div>
                     
-                    <Link href={`/dashboard/teacher/courses/${course.id}`} className="w-full sm:w-auto">
-                      <Button variant="outline" className="w-full sm:w-[100px]">
-                        View
-                      </Button>
-                    </Link>
+                     <LinkWithLoading
+                      href={`/dashboard/teacher/courses/${course.id}`}
+                      loadingText="Opening lesson..."
+                    >
+                      View
+                    </LinkWithLoading>
                   </div>
                 )
               })}

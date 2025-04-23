@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import api from "@/app/utils/axiosInstance"
 import { formatRelativeTime } from "@/app/utils/functions"
+import { LinkWithLoading } from "@/components/link-with-loading"
 
 export default function EnrolledCourses() {
   const [userId, setUserId] = useState("")
@@ -185,12 +186,12 @@ export default function EnrolledCourses() {
                         <Progress value={progress} className="h-2" />
                       </div>
                     </div>
-                    
-                    <Link href={`/dashboard/student/courses/${course.id}`} className="w-full sm:w-auto">
-                      <Button variant="outline" className="w-full sm:w-[100px]">
-                        Continue
-                      </Button>
-                    </Link>
+                    <LinkWithLoading
+                      href={`/dashboard/student/courses/${course.id}`}
+                      loadingText="Opening lesson..."
+                    >
+                      {progress>0?"Continue":"Start"}
+                    </LinkWithLoading>
                   </div>
                 )
               })}

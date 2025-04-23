@@ -1,482 +1,338 @@
 "use client"
-
-import { useState } from "react"
-import { Clock, Medal, Trophy, Users } from "lucide-react"
+import Link from "next/link"
+import { ArrowLeft, Clock, Trophy, ChevronDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useEffect, useState } from "react"
+import api from "@/app/utils/axiosInstance"
+import { toast } from "sonner"
+import { useParams } from "next/navigation"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
-export default function TeacherRankingsPage() {
-  const [selectedCourse, setSelectedCourse] = useState("all")
-  const [selectedQuiz, setSelectedQuiz] = useState("HTML Basics Quiz")
+interface QuizRanking {
+  rank: number
+  studentId: string
+  firstName: string
+  lastName: string
+  email: string
+  score: number
+  timeTaken: number
+  attemptNumber: number
+  submittedAt: string
+  courseTitle: string
+  totalScore: number
+}
 
-  // Mock rankings data
-  const overallRankings = [
-    {
-      id: "s2",
-      name: "Jane Smith",
-      email: "jane.smith@example.com",
-      avgScore: 94,
-      courses: 5,
-      quizzes: 15,
-      badges: 8,
-    },
-    {
-      id: "s1",
-      name: "rugal Yurib",
-      email: "john.doe@example.com",
-      avgScore: 91,
-      courses: 4,
-      quizzes: 12,
-      badges: 7,
-    },
-    {
-      id: "s5",
-      name: "Michael Brown",
-      email: "michael.brown@example.com",
-      avgScore: 88,
-      courses: 6,
-      quizzes: 18,
-      badges: 9,
-    },
-    {
-      id: "s3",
-      name: "Alex Johnson",
-      email: "alex.johnson@example.com",
-      avgScore: 85,
-      courses: 3,
-      quizzes: 9,
-      badges: 5,
-    },
-    {
-      id: "s4",
-      name: "Sarah Williams",
-      email: "sarah.williams@example.com",
-      avgScore: 82,
-      courses: 4,
-      quizzes: 12,
-      badges: 6,
-    },
-  ]
+interface Course {
+  id: string
+  title: string
+  description: string
+}
 
-  const courseRankings = {
-    all: [
-      {
-        id: "s1",
-        name: "rugal Yurib",
-        email: "john.doe@example.com",
-        score: 92,
-        completionRate: 95,
-        quizzesTaken: 5,
-        averageTime: "15:20",
-      },
-      {
-        id: "s2",
-        name: "Jane Smith",
-        email: "jane.smith@example.com",
-        score: 88,
-        completionRate: 90,
-        quizzesTaken: 5,
-        averageTime: "18:45",
-      },
-      {
-        id: "s3",
-        name: "Alex Johnson",
-        email: "alex.johnson@example.com",
-        score: 85,
-        completionRate: 85,
-        quizzesTaken: 4,
-        averageTime: "20:10",
-      },
-      {
-        id: "s4",
-        name: "Sarah Williams",
-        email: "sarah.williams@example.com",
-        score: 82,
-        completionRate: 80,
-        quizzesTaken: 4,
-        averageTime: "22:30",
-      },
-      {
-        id: "s5",
-        name: "Michael Brown",
-        email: "michael.brown@example.com",
-        score: 78,
-        completionRate: 75,
-        quizzesTaken: 3,
-        averageTime: "19:15",
-      },
-    ],
-    "web-dev": [
-      {
-        id: "s2",
-        name: "Jane Smith",
-        email: "jane.smith@example.com",
-        score: 95,
-        completionRate: 98,
-        quizzesTaken: 3,
-        averageTime: "16:30",
-      },
-      {
-        id: "s1",
-        name: "rugal Yurib",
-        email: "john.doe@example.com",
-        score: 92,
-        completionRate: 95,
-        quizzesTaken: 3,
-        averageTime: "15:20",
-      },
-      {
-        id: "s5",
-        name: "Michael Brown",
-        email: "michael.brown@example.com",
-        score: 88,
-        completionRate: 90,
-        quizzesTaken: 3,
-        averageTime: "17:45",
-      },
-      {
-        id: "s3",
-        name: "Alex Johnson",
-        email: "alex.johnson@example.com",
-        score: 85,
-        completionRate: 85,
-        quizzesTaken: 2,
-        averageTime: "20:10",
-      },
-      {
-        id: "s4",
-        name: "Sarah Williams",
-        email: "sarah.williams@example.com",
-        score: 80,
-        completionRate: 80,
-        quizzesTaken: 2,
-        averageTime: "22:30",
-      },
-    ],
-  }
+interface Quiz {
+  id: string
+  title: string
+  totalScore: number
+}
 
-  const quizRankings = {
-    "HTML Basics Quiz": [
-      {
-        id: "s1",
-        name: "rugal Yurib",
-        score: 95,
-        timeTaken: "12:45",
-        attempts: 1,
-      },
-      {
-        id: "s2",
-        name: "Jane Smith",
-        score: 90,
-        timeTaken: "15:20",
-        attempts: 1,
-      },
-      {
-        id: "s3",
-        name: "Alex Johnson",
-        score: 85,
-        timeTaken: "18:10",
-        attempts: 2,
-      },
-      {
-        id: "s4",
-        name: "Sarah Williams",
-        score: 80,
-        timeTaken: "20:30",
-        attempts: 1,
-      },
-      {
-        id: "s5",
-        name: "Michael Brown",
-        score: 75,
-        timeTaken: "16:15",
-        attempts: 2,
-      },
-    ],
-    "CSS Selectors Challenge": [
-      {
-        id: "s2",
-        name: "Jane Smith",
-        score: 92,
-        timeTaken: "14:30",
-        attempts: 1,
-      },
-      {
-        id: "s1",
-        name: "rugal Yurib",
-        score: 88,
-        timeTaken: "16:15",
-        attempts: 1,
-      },
-      {
-        id: "s5",
-        name: "Michael Brown",
-        score: 85,
-        timeTaken: "15:45",
-        attempts: 1,
-      },
-      {
-        id: "s3",
-        name: "Alex Johnson",
-        score: 80,
-        timeTaken: "18:20",
-        attempts: 2,
-      },
-      {
-        id: "s4",
-        name: "Sarah Williams",
-        score: 75,
-        timeTaken: "19:10",
-        attempts: 2,
-      },
-    ],
+export default function QuizRankingsPage() {
+  const [rankings, setRankings] = useState<QuizRanking[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [yourRank, setYourRank] = useState<number | null>(null)
+  const [yourData, setYourData] = useState<QuizRanking | null>(null)
+  const [userId, setUserId] = useState("")
+  const [courses, setCourses] = useState<Course[]>([])
+  const [quizzes, setQuizzes] = useState<Quiz[]>([])
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("")
+  const [selectedQuizId, setSelectedQuizId] = useState<string>("")
+  const [loadingQuizzes, setLoadingQuizzes] = useState(false)
+
+  useEffect(() => {
+    const userID = localStorage.getItem("userId")
+    if (userID) {
+      setUserId(userID)
+    }
+  }, [])
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await api.get("/course/getAll-courses")
+        setCourses(response.data)
+      } catch (error) {
+        console.error("Error fetching courses:", error)
+        toast.error("Failed to load courses")
+      }
+    }
+    fetchCourses()
+  }, [])
+
+  useEffect(() => {
+    if (!selectedCourseId) return
+
+    const fetchQuizzes = async () => {
+      setLoadingQuizzes(true)
+      try {
+        const response = await api.get(`/quiz/quizzes/by-course/${selectedCourseId}`)
+        setQuizzes(response.data)
+        setSelectedQuizId("") // Reset quiz selection when course changes
+      } catch (error) {
+        console.error("Error fetching quizzes:", error)
+        toast.error("Failed to load quizzes for this course")
+      } finally {
+        setLoadingQuizzes(false)
+      }
+    }
+
+    fetchQuizzes()
+  }, [selectedCourseId])
+
+  useEffect(() => {
+    if (!selectedQuizId || !userId) return
+
+    const fetchRankings = async () => {
+      setLoading(true)
+      try {
+        const response = await api.get(`/quiz/quizzes-ranking/${selectedQuizId}`)
+        if (response.data) {
+          setRankings(response.data)
+          
+          if (userId) {
+            const yourRanking = response.data.find((r: QuizRanking) => r.studentId === userId)
+            if (yourRanking) {
+              setYourRank(yourRanking.rank)
+              setYourData(yourRanking)
+            }else {
+              setYourRank(null)
+              setYourData(null)
+            }
+          }
+        } else {
+          setError("No rankings data returned")
+        }
+      } catch (error) {
+        console.error("Error fetching rankings:", error)
+        setError("Failed to load rankings")
+        toast.error("Failed to load rankings")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRankings()
+  }, [selectedQuizId, userId])
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`
   }
 
   return (
     <div className="grid gap-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Student Rankings</h1>
-        <p className="text-muted-foreground">View student performance rankings across the platform</p>
+      <div className="flex items-center gap-2">
+        <Link href="/dashboard/student/performance">
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="sr-only">Back to performance</span>
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Quiz Rankings</h1>
+          <p className="text-muted-foreground">View performance rankings for quizzes</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Top Student</CardTitle>
+          <CardHeader>
+            <CardTitle>Select Course</CardTitle>
+            <CardDescription>Choose a course to view available quizzes</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback>{overallRankings[0].name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">{overallRankings[0].name}</p>
-                <p className="text-xs text-muted-foreground">{overallRankings[0].avgScore}% average score</p>
-              </div>
-              <Trophy className="ml-auto h-5 w-5 text-yellow-500" />
-            </div>
+            <Select
+              value={selectedCourseId}
+              onValueChange={(value) => setSelectedCourseId(value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a course" />
+              </SelectTrigger>
+              <SelectContent>
+                {courses.map((course) => (
+                  <SelectItem key={course.id} value={course.id}>
+                    {course.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Average Score</CardTitle>
+          <CardHeader>
+            <CardTitle>Select Quiz</CardTitle>
+            <CardDescription>
+              {selectedCourseId ? "Choose a quiz to view rankings" : "Select a course first"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">86%</div>
-            <p className="text-xs text-muted-foreground">Across all students and courses</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <div className="text-2xl font-bold">{overallRankings.length}</div>
-              <Users className="ml-2 h-5 w-5 text-muted-foreground" />
-            </div>
-            <p className="text-xs text-muted-foreground">Ranked by performance</p>
+            <Select
+              value={selectedQuizId}
+              onValueChange={(value) => setSelectedQuizId(value)}
+              disabled={!selectedCourseId || loadingQuizzes}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={loadingQuizzes ? "Loading quizzes..." : "Select a quiz"} />
+              </SelectTrigger>
+              <SelectContent>
+                {quizzes.map((quiz) => (
+                  <SelectItem key={quiz.id} value={quiz.id}>
+                    {quiz.title} (Max score: {quiz.totalScore})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="overall" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overall">Overall Rankings</TabsTrigger>
-          <TabsTrigger value="course">Course Rankings</TabsTrigger>
-          <TabsTrigger value="quiz">Quiz Rankings</TabsTrigger>
-        </TabsList>
+      {loading && selectedQuizId && (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      )}
 
-        <TabsContent value="overall" className="mt-4">
+      {error && (
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <div className="text-red-500">{error}</div>
+        </div>
+      )}
+
+      {!loading && selectedQuizId && rankings.length === 0 && (
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <div>No rankings available yet for this quiz</div>
+        </div>
+      )}
+
+      {!loading && selectedQuizId && rankings.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Your Rank</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <div className="text-2xl font-bold">{yourRank || 'N/A'}</div>
+                  {yourRank === 1 && <Trophy className="ml-2 h-5 w-5 text-yellow-500" />}
+                </div>
+                <p className="text-xs text-muted-foreground">Out of {rankings.length} participants</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Your Score</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {yourData ? `${yourData.score}/${yourData.totalScore}` : 'N/A'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {yourData ? `Attempt #${yourData.attemptNumber}` : 'Not attempted'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Your Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {yourData ? formatTime(yourData.timeTaken) : 'N/A'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {yourData ? new Date(yourData.submittedAt).toLocaleString() : ''}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader>
-              <CardTitle>Overall Platform Rankings</CardTitle>
-              <CardDescription>Top performing students across all courses</CardDescription>
+              <CardTitle>Quiz Performance Rankings</CardTitle>
+              <CardDescription>
+                Students ranked by performance in this quiz (latest attempt shown)
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
-                <div className="grid grid-cols-7 gap-4 p-4 font-medium border-b">
-                  <div>Rank</div>
-                  <div className="col-span-2">Student</div>
-                  <div>Avg. Score</div>
-                  <div>Courses</div>
-                  <div>Quizzes</div>
-                  <div>Badges</div>
+                <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
+                  <div className="col-span-1">Rank</div>
+                  <div className="col-span-4">Student</div>
+                  <div className="col-span-2">Score</div>
+                  <div className="col-span-2">Attempt</div>
+                  <div className="col-span-3">Time Taken</div>
                 </div>
-                {overallRankings.map((student, index) => (
-                  <div key={student.id} className="grid grid-cols-7 gap-4 p-4 border-b last:border-0 items-center">
-                    <div className="flex items-center">
-                      {index === 0 ? (
-                        <Trophy className="h-5 w-5 text-yellow-500" />
-                      ) : index === 1 ? (
-                        <Trophy className="h-5 w-5 text-gray-400" />
-                      ) : index === 2 ? (
-                        <Trophy className="h-5 w-5 text-amber-700" />
-                      ) : (
-                        <span className="font-medium">{index + 1}</span>
-                      )}
-                    </div>
-                    <div className="col-span-2 flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{student.name}</p>
-                        <p className="text-xs text-muted-foreground">{student.email}</p>
+                {rankings.map((student) => {
+                  const isYou = yourData?.studentId === student.studentId
+                  return (
+                    <div
+                      key={student.studentId}
+                      className={`grid grid-cols-12 gap-4 p-4 border-b last:border-0 items-center ${
+                        isYou ? "bg-muted" : ""
+                      }`}
+                    >
+                      <div className="col-span-1 flex items-center">
+                        {student.rank === 1 ? (
+                          <Trophy className="h-5 w-5 text-yellow-500" />
+                        ) : student.rank === 2 ? (
+                          <Trophy className="h-5 w-5 text-gray-400" />
+                        ) : student.rank === 3 ? (
+                          <Trophy className="h-5 w-5 text-amber-700" />
+                        ) : (
+                          <span className="font-medium">{student.rank}</span>
+                        )}
+                      </div>
+                      <div className="col-span-4 flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            {student.firstName.charAt(0)}{student.lastName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">
+                            {student.firstName} {student.lastName}
+                            {isYou && <span className="ml-2 text-xs text-muted-foreground">(You)</span>}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{student.email}</p>
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        {student.score}/{student.totalScore}
+                      </div>
+                      <div className="col-span-2">#{student.attemptNumber}</div>
+                      <div className="col-span-3 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{formatTime(student.timeTaken)}</span>
                       </div>
                     </div>
-                    <div>{student.avgScore}%</div>
-                    <div>{student.courses}</div>
-                    <div>{student.quizzes}</div>
-                    <div className="flex items-center gap-1">
-                      <Medal className="h-4 w-4" />
-                      <span>{student.badges}</span>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="course" className="mt-4">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <CardTitle>Course Performance Rankings</CardTitle>
-                  <CardDescription>Students ranked by performance in specific courses</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Select Course:</span>
-                  <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Select a course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Courses</SelectItem>
-                      <SelectItem value="web-dev">Web Development</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <div className="grid grid-cols-7 gap-4 p-4 font-medium border-b">
-                  <div>Rank</div>
-                  <div className="col-span-2">Student</div>
-                  <div>Score</div>
-                  <div>Completion</div>
-                  <div>Quizzes</div>
-                  <div>Avg. Time</div>
-                </div>
-                {courseRankings[selectedCourse as keyof typeof courseRankings].map((student, index) => (
-                  <div key={student.id} className="grid grid-cols-7 gap-4 p-4 border-b last:border-0 items-center">
-                    <div className="flex items-center">
-                      {index === 0 ? (
-                        <Trophy className="h-5 w-5 text-yellow-500" />
-                      ) : index === 1 ? (
-                        <Trophy className="h-5 w-5 text-gray-400" />
-                      ) : index === 2 ? (
-                        <Trophy className="h-5 w-5 text-amber-700" />
-                      ) : (
-                        <span className="font-medium">{index + 1}</span>
-                      )}
-                    </div>
-                    <div className="col-span-2 flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{student.name}</p>
-                        <p className="text-xs text-muted-foreground">{student.email}</p>
-                      </div>
-                    </div>
-                    <div>{student.score}%</div>
-                    <div>{student.completionRate}%</div>
-                    <div>{student.quizzesTaken}</div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{student.averageTime}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="quiz" className="mt-4">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <CardTitle>Quiz Performance Rankings</CardTitle>
-                  <CardDescription>Students ranked by performance in specific quizzes</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Select Quiz:</span>
-                  <Select value={selectedQuiz} onValueChange={setSelectedQuiz}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Select a quiz" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="HTML Basics Quiz">HTML Basics Quiz</SelectItem>
-                      <SelectItem value="CSS Selectors Challenge">CSS Selectors Challenge</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <div className="grid grid-cols-6 gap-4 p-4 font-medium border-b">
-                  <div>Rank</div>
-                  <div className="col-span-2">Student</div>
-                  <div>Score</div>
-                  <div>Time Taken</div>
-                  <div>Attempts</div>
-                </div>
-                {quizRankings[selectedQuiz as keyof typeof quizRankings].map((student, index) => (
-                  <div key={student.id} className="grid grid-cols-6 gap-4 p-4 border-b last:border-0 items-center">
-                    <div className="flex items-center">
-                      {index === 0 ? (
-                        <Trophy className="h-5 w-5 text-yellow-500" />
-                      ) : index === 1 ? (
-                        <Trophy className="h-5 w-5 text-gray-400" />
-                      ) : index === 2 ? (
-                        <Trophy className="h-5 w-5 text-amber-700" />
-                      ) : (
-                        <span className="font-medium">{index + 1}</span>
-                      )}
-                    </div>
-                    <div className="col-span-2 flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{student.name}</p>
-                      </div>
-                    </div>
-                    <div>{student.score}%</div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{student.timeTaken}</span>
-                    </div>
-                    <div>{student.attempts}</div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        </>
+      )}
     </div>
   )
 }
-

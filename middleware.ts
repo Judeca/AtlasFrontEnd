@@ -19,15 +19,12 @@ export const config = {
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("token")?.value;
   const path = request.nextUrl.pathname;
- console.log("runing middle")
+
   // Define routes
   const publicRoutes = ["/", "/LandingPage", "/contact"]; // Accessible to everyone
   const authRoutes = ["/signIn", "/signUp", "/forgot-password"];
   const protectedRoutes = [
     "/dashboard",
-    "/student",
-    "/teacher",
-    "/admin",
     "/profile",
     "/settings"
   ];
@@ -44,7 +41,6 @@ export async function middleware(request: NextRequest) {
         // Invalid token, clear cookies
         const response = NextResponse.redirect(new URL("/signIn", request.url));
         response.cookies.delete("token");
-       
         return response;
       }
     }
@@ -52,7 +48,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Handle protected routes
-  if (protectedRoutes.some(route => path.startsWith(route))) {
+  if (protectedRoutes.some(route => path.startsWith(route)) || 
+      path.startsWith("/dashboard/student") || 
+      path.startsWith("/dashboard/teacher") ||
+      path.startsWith("/dashboard/admin")) {
+    
     if (!token) {
       return NextResponse.redirect(new URL("/signIn", request.url));
     }
@@ -61,8 +61,17 @@ export async function middleware(request: NextRequest) {
       const decoded = await verifyToken(token);
       
       // Role-based routing protection
-      const basePath = path.split("/")[1];
-      if (basePath && !isAuthorizedRoute(basePath, decoded.role)) {
+      if (path.startsWith("/dashboard/student") && decoded.role.toLowerCase() !== "student") {
+        const redirectPath = getRoleBasedRedirect(decoded.role);
+        return NextResponse.redirect(new URL(redirectPath, request.url));
+      }
+
+      if (path.startsWith("/dashboard/teacher") && decoded.role.toLowerCase() !== "teacher") {
+        const redirectPath = getRoleBasedRedirect(decoded.role);
+        return NextResponse.redirect(new URL(redirectPath, request.url));
+      }
+
+      if (path.startsWith("/dashboard/admin") && decoded.role.toLowerCase() !== "admin") {
         const redirectPath = getRoleBasedRedirect(decoded.role);
         return NextResponse.redirect(new URL(redirectPath, request.url));
       }
@@ -88,15 +97,4 @@ function getRoleBasedRedirect(role: string): string {
     admin: "/dashboard/admin",
   };
   return roleRoutes[role.toLowerCase()] || "/dashboard";
-}
-
-function isAuthorizedRoute(path: string, role: string): boolean {
-  const rolePermissions: Record<string, string[]> = {
-    student: ["student", "dashboard", "profile"],
-    teacher: ["teacher", "dashboard", "profile"],
-    admin: ["admin", "dashboard", "profile", "settings"],
-  };
-  
-  const allowedPaths = rolePermissions[role.toLowerCase()] || [];
-  return allowedPaths.includes(path);
 }

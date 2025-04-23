@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { BookOpen, FileText, Loader2, Search } from "lucide-react"
+import { ArrowLeft, BookOpen, FileText, Loader2, Search } from "lucide-react"
 import { useState,useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import api from "@/app/utils/axiosInstance"
+import { IconLinkWithLoading } from "@/components/icon-link-with-loading"
+import { LinkWithLoading } from "@/components/link-with-loading"
 
 
 export default function StudentCoursesPage() {
@@ -188,11 +190,12 @@ export default function StudentCoursesPage() {
                 </div>
 
                 <div className="mt-4">
-                  <Link href={`/dashboard/student/courses/${course.course.id}`} className="w-full">
-                    <Button size="sm" className="w-full">
-                      Continue Learning
-                    </Button>
-                  </Link>
+                  <LinkWithLoading
+                  href={`/dashboard/student/courses/${course.course.id}`}
+                  loadingText="Opening ..."
+                >
+                  Continue Learning
+                </LinkWithLoading>
                 </div>
               </CardContent>
             </Card>

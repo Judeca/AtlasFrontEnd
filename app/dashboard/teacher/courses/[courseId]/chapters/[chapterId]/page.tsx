@@ -18,6 +18,9 @@ import {formatDuration} from "@/app/utils/functions"
 import {FileType,CourseMaterial,fileTypeIcons,isMediaFile} from "@/app/utils/fileTypes"
 
 import { toast } from "sonner"
+import { LinkWithLoading } from "@/components/link-with-loading"
+import { IconLinkWithLoading } from "@/components/icon-link-with-loading"
+import AnimatedUpload from "@/components/AnimatedLoading"
 
 export default function ChapterPage() {
   const { courseId, chapterId } = useParams() as { courseId: string; chapterId: string }
@@ -324,12 +327,12 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
     return (
       <div className="grid gap-6">
         <div className="flex items-center gap-2">
-          <Link href={`/dashboard/teacher/courses/${courseId}`}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Back to course</span>
-            </Button>
-          </Link>
+        <IconLinkWithLoading
+          href={`/dashboard/teacher/courses/${courseId}`}
+          icon={<ArrowLeft className="h-4 w-4" />}
+          srText="Back to course"
+          variant="ghost"
+        /> 
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Chapter not found</h1>
           </div>
@@ -341,12 +344,12 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
   return (
     <div className="grid gap-6">
       <div className="flex items-center gap-2">
-        <Link href={`/dashboard/teacher/courses/${courseId}`}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back to course</span>
-          </Button>
-        </Link>
+         <IconLinkWithLoading
+          href={`/dashboard/teacher/courses/${courseId}`}
+          icon={<ArrowLeft className="h-4 w-4" />}
+          srText="Back to course"
+          variant="ghost"
+        /> 
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{chapter.title}</h1>
           <p className="text-muted-foreground">
@@ -429,14 +432,12 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <Link
-                          href={`/dashboard/teacher/courses/${courseId}/chapters/${chapterId}/lessons/${lesson.id}`}
-                        >
-                          <Button>
-                            View Lesson
-                            <ChevronRight className="ml-2 h-4 w-4" />
-                          </Button>
-                        </Link>
+                        <LinkWithLoading
+                  href={`/dashboard/teacher/courses/${courseId}/chapters/${chapterId}/lessons/${lesson.id}`}
+                  loadingText="Opening lesson..."
+                >
+                  View Lesson
+                </LinkWithLoading>  
                       </div>
                     </div>
                   ))}
@@ -484,9 +485,11 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
             </CardHeader>
             <CardContent>
               {isUploading ? (
-                <div className="flex items-center justify-center p-8">
-                  <p>Uploading file...</p>
-                </div>
+                <AnimatedUpload 
+                              message="Processing your documents..." 
+                              size="sm" 
+                              color="purple"
+                            />
               ) : materials.length === 0 ? (
                 <div className="rounded-md border p-4 text-center">
                   <p className="text-sm text-muted-foreground">

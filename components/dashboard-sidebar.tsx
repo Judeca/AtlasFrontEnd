@@ -39,21 +39,21 @@ export function DashboardSidebar({ userType, children }: DashboardSidebarProps) 
       href: "/dashboard/teacher/courses",
       icon: BookOpen,
     },
-    {
+   /* {
       title: "Students",
       href: "/dashboard/teacher/students",
       icon: GraduationCap,
-    },
+    },*/
     {
       title: "Rankings",
       href: "/dashboard/teacher/rankings",
       icon: Trophy,
     },
-    {
+    /*{
       title: "Settings",
       href: "/dashboard/teacher/settings",
       icon: Settings,
-    },
+    },*/
   ]
 
   const studentNavItems = [
@@ -67,16 +67,16 @@ export function DashboardSidebar({ userType, children }: DashboardSidebarProps) 
       href: "/dashboard/student/courses",
       icon: BookOpen,
     },
-    {
-      title: "Library",
+    /**{
+      title: "Take a Quiz",
       href: "/dashboard/student/library",
       icon: Library,
-    },
-    {
+    },**/
+   /** {
       title: "Profile",
       href: "/dashboard/student/profile",
       icon: User,
-    },
+    },**/
     {
       title: "Rankings",
       href: "/dashboard/student/rankings",
@@ -85,13 +85,14 @@ export function DashboardSidebar({ userType, children }: DashboardSidebarProps) 
   ]
 
 
-  // Example logout handler
+  //  logout handler
 const handleLogout = () => {
   // Clear cookies
   document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
   document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
   localStorage.removeItem("userId")
-  // Redirect to login page with full page reload
+  localStorage.removeItem("quizDeadline")
+  // Redirect to login page 
   window.location.href = "/signIn";
 };
 
@@ -128,7 +129,7 @@ const handleLogout = () => {
                 <AvatarFallback>{userType === "teacher" ? "T" : "S"}</AvatarFallback>
               </Avatar>
               <div className="grid gap-0.5 text-sm">
-                <div className="font-medium">{userType === "teacher" ? "rugal Yurib" : "Jane Smith"}</div>
+                <div className="font-medium">{userType === "teacher" ? "Teacher" : "Student"}</div>
                 <div className="text-xs text-muted-foreground">{userType === "teacher" ? "Teacher" : "Student"}</div>
               </div>
               <Button onClick={handleLogout} variant="ghost" size="icon" className="ml-auto">
@@ -143,10 +144,7 @@ const handleLogout = () => {
             <SidebarTrigger />
             <div className="w-full flex-1">
               <nav className="flex items-center space-x-4 lg:space-x-6">
-                <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
-                  <Home className="h-4 w-4" />
-                  <span className="sr-only">Home</span>
-                </Link>
+              
               </nav>
             </div>
           </header>

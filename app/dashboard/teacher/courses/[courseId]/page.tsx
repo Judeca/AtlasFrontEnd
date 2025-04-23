@@ -5,23 +5,28 @@ import { useState,useEffect } from "react"
 import api from "@/app/utils/axiosInstance"
 
 import Link from "next/link"
-import { ArrowLeft, ChevronRight, FolderPlus, Pencil, Trash2, FileText, HelpCircle, Upload,File } from "lucide-react"
+import { ArrowLeft, ChevronRight, FolderPlus, Pencil, Trash2, FileText, HelpCircle, Upload,File, EyeOff } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CreateChapterModal } from "@/components/create-chapter-modal"
+import { CreateQuizModal } from "@/components/create-quiz-modal"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useParams } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
 import {FileType,CourseMaterial,fileTypeIcons, isMediaFile} from "@/app/utils/fileTypes"
 import { toast } from "sonner"
+import { formatDuration, formatRelativeTime } from "@/app/utils/functions"
+import { IconLinkWithLoading } from "@/components/icon-link-with-loading"
+import { LinkWithLoading } from "@/components/link-with-loading"
+import AnimatedUpload from "@/components/AnimatedLoading"
 
 export default function CoursePage() {
   const { courseId, chapterId } = useParams() as { courseId: string; chapterId: string }
   const [isCreateChapterModalOpen, setIsCreateChapterModalOpen] = useState(false)
-
+  const [isCreateQuizModalOpen, setIsCreateQUizModalOpen] = useState(false)
 
   const [courses,setCourse]=useState<any>(null)
   const [chapters,setChapters]=useState<any[]>([])
@@ -29,7 +34,7 @@ export default function CoursePage() {
   const [students,setStudents]=useState<any[]>([])
   const [materials, setMaterials] = useState<CourseMaterial[]>([])
   const [isUploading, setIsUploading] = useState(false)
-
+  const [userId,setUserId]=useState("")
 
   const [loading, setLoading] = useState({
     chapter: true,
@@ -38,13 +43,21 @@ export default function CoursePage() {
     materials:true,
     quizzes:true
   })
+  
   const [error, setError] = useState({
     lesson: null,
     materials: null,
     chapter:null,
     quizzes:null
   })
-
+ 
+  useEffect(() => { 
+    const userID = localStorage.getItem("userId");   
+    if (userID) { 
+    console.log(userID) 
+    setUserId(userID) 
+    } 
+    },[userId] ); 
 
 
  //fetch course Info
@@ -90,21 +103,20 @@ export default function CoursePage() {
 
 
   //fetch quizzes in a course
+  const fetchQuizzes = async () => {
+    try {
+      const response = await api.get(`/quiz/quizzes/by-course/${courseId}`);
+      setQuizzes(response.data);
+    } catch (error) {
+      console.error("Error fetching chapters:", error);
+    }finally {
+      setLoading(prev => ({...prev, quizzes: false}));
+    }
+  };
   useEffect(()=>{
     if(!courseId){
       return;
     }
-    const fetchQuizzes = async () => {
-      try {
-        const response = await api.get(`/quiz/quizzes/by-course/${courseId}`);
-        setQuizzes(response.data);
-      } catch (error) {
-        console.error("Error fetching chapters:", error);
-      }finally {
-        setLoading(prev => ({...prev, quizzes: false}));
-      }
-    };
-
     fetchQuizzes();
 
   },[])
@@ -122,7 +134,7 @@ export default function CoursePage() {
       } catch (error) {
         console.error("Error fetching enrolled students:", error);
       }
-    };
+    }; 
 
     fetchStudents();
 
@@ -224,23 +236,67 @@ const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
 };
 
 const handleChapterCreated = () => {
-  // Your refresh logic here
+ 
   console.log("Assignment created successfully, refresh data");
-  fetchChapters(); // Example refresh function
+  fetchChapters(); //refresh function
 };
 
+const handleQuizCreated= () => {
+  console.log("Assignment created successfully, refresh data");
+  fetchQuizzes(); //refresh function
+};
 
- 
+const updateQuizStatus = async (quizId: string, currentStatus: string) => {
+  try {
+    const newStatus = currentStatus === 'DRAFT' ? 'PUBLISHED' : 'DRAFT';
+    await api.patch(`/quiz/update-quizzes-dynamically/${quizId}`, { status: newStatus });
+    
+    // Update local state
+    setQuizzes(prevQuizzes => 
+      prevQuizzes.map(quiz => 
+        quiz.id === quizId 
+          ? { ...quiz, status: newStatus } 
+          : quiz
+      )
+    );
+    
+    toast.success(`Quiz ${newStatus === 'PUBLISHED' ? 'published' : 'unpublished'} successfully`);
+  } catch (error) {
+    console.error("Error updating quiz status:", error);
+    toast.error("Failed to update quiz status");
+  }
+};
+
+const updateQuizview = async (quizId: string, currentview: boolean) => {
+  try {
+    const newview = currentview === false ? true : false;
+    await api.patch(`/quiz/update-quizzes-dynamically/${quizId}`, { viewAnswers: newview });
+    
+    // Update local state
+    setQuizzes(prevQuizzes => 
+      prevQuizzes.map(quiz => 
+        quiz.id === quizId 
+          ? { ...quiz, viewAnswers: newview } 
+          : quiz
+      )
+    );
+    
+    toast.success(`Quiz ${newview === false ? 'view Enabled' : 'view Desactivated'} successfully`);
+  } catch (error) {
+    console.error("Error updating quiz status:", error);
+    toast.error("Failed to update quiz status");
+  }
+};
 
   return (
     <div className="grid gap-6">
       <div className="flex items-center gap-2">
-        <Link href="/dashboard/teacher/courses">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back to courses</span>
-          </Button>
-        </Link>
+        <IconLinkWithLoading
+        href={`/dashboard/teacher/courses`}
+        icon={<ArrowLeft className="h-4 w-4" />}
+        srText="Back to course"
+        variant="ghost"
+      />
         <div>
         {courses && ( 
         <div>
@@ -266,10 +322,10 @@ const handleChapterCreated = () => {
             <Button onClick={() => setIsCreateChapterModalOpen(true)}>
               <FolderPlus className="mr-2 h-4 w-4" />
               Add Chapter
-            </Button>
+            </Button> 
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4"> 
           {loading.chapter ? (
                               <div className="flex items-center justify-center h-32">
                                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
@@ -318,12 +374,12 @@ const handleChapterCreated = () => {
                     <div className="text-sm text-muted-foreground">
                       {chapter.lessonCount} {chapter.lessonsCount === 1 ? "lesson" : "lessons"}
                     </div>
-                    <Link href={`/dashboard/teacher/courses/${courseId}/chapters/${chapter.id}`}>
-                      <Button>
-                        View Lessons
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
+                    <LinkWithLoading
+                      href={`/dashboard/teacher/courses/${courseId}/chapters/${chapter.id}`}
+                      loadingText="Opening lesson..."
+                    >
+                      View Lesson
+                    </LinkWithLoading>
                   </div>
                 </CardContent>
               </Card>
@@ -365,9 +421,11 @@ const handleChapterCreated = () => {
             </CardHeader>
             <CardContent>
               {isUploading ? (
-                <div className="flex items-center justify-center p-8">
-                  <p>Uploading file...</p>
-                </div>
+               <AnimatedUpload 
+               message="Processing your documents..." 
+               size="sm" 
+               color="indigo"
+             />
               ) : materials.length === 0 ? (
                 <div className="rounded-md border p-4 text-center">
                   <p className="text-sm text-muted-foreground">
@@ -431,108 +489,134 @@ const handleChapterCreated = () => {
           </Card>
         </TabsContent>
         <TabsContent value="quizzes" className="mt-4">
-          <div className="flex justify-between mb-4">
-            <h2 className="text-xl font-semibold">Course Quizzes</h2>
-            <Link href={`/dashboard/teacher/courses/${courseId}/quizzes/create`}>
-              <Button>
-                <HelpCircle className="mr-2 h-4 w-4" />
-                Create Quiz
-              </Button>
-            </Link>
-          </div>
+  <div className="flex justify-between mb-4">
+    <h2 className="text-xl font-semibold">Course Quizzes</h2>
+    <Button onClick={() => setIsCreateQUizModalOpen(true)}>
+      <HelpCircle className="mr-2 h-4 w-4" />
+      Create Quiz
+    </Button>
+  </div>
 
-          <div className="space-y-4">
-          {loading.quizzes ? (
-                              <div className="flex items-center justify-center h-32">
-                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                              </div>
-                            ) : error.quizzes ? (
-                              <div className="text-red-500 text-center py-4">
-                                Failed to load quizzes
-                              </div>
-                            ) : quizze.length > 0 ? (
-                              <div className="space-y-4">
-                                {quizze.map((quiz) => (
-              <Card key={quiz.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">{quiz.title}</CardTitle>
-                      <Badge variant={quiz.status === "PUBLISHED" ? "default" : "secondary"}>
-                        {quiz.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT"}
-                      </Badge>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Pencil className="h-4 w-4" />
-                          <span className="sr-only">Edit Quiz</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit Quiz
-                        </DropdownMenuItem>
-                        {quiz.status === "DRAFT" && (
-                          <DropdownMenuItem>
-                            <HelpCircle className="mr-2 h-4 w-4" />
-                            Publish Quiz
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Quiz
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  {/*<CardDescription>{quiz.description}</CardDescription>*/}
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-4 text-sm text-muted-foreground">
-                      <span>{quiz.quizcategorie} questions</span>
-                      <span>Created {quiz.createdAt}</span>
-                    </div>
-                    <Link href={`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id}`}>
-                      <Button>
-                        View Quiz
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                    <Link href={`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id}/edit`}>
-                      <Button>
-                        Add Questions
-                        <ChevronRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-                              </div>
-                            ) : (
-                              <div className="rounded-md border border-dashed p-6 text-center">
-                                <File className="mx-auto h-8 w-8 text-muted-foreground" />
-                                <h3 className="mt-2 font-medium">No Quizzes yet</h3>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  There are no additional quizzes for this lesson
-                                </p>
-                              </div>
-                            )}
-          </div>
-        </TabsContent>
+  <div className="space-y-4">
+    {loading.quizzes ? (
+      <div className="flex items-center justify-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    ) : error.quizzes ? (
+      <div className="text-red-500 text-center py-4">
+        Failed to load quizzes
+      </div>
+    ) : quizze.length > 0 ? (
+      <div className="space-y-4">
+        {quizze.map((quiz) => (
+          <Card key={quiz.id}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-lg">{quiz.title}</CardTitle>
+                  <Badge variant={quiz.status === "PUBLISHED" ? "default" : "secondary"}>
+                    {quiz.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT"}
+                  </Badge>
+                  <Badge variant={quiz.viewAnswers === false ? "default" : "secondary"}>
+                    {quiz.viewAnswers === false ? "Answer view Enabled" : "Answer view desactivated"}
+                  </Badge>
+                  <div>{formatDuration(quiz.duration)} minutes</div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Pencil className="h-4 w-4" />
+                      <span className="sr-only">Edit Quiz</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit Quiz
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => updateQuizStatus(quiz.id, quiz.status)}
+                    >
+                      {quiz.status === 'DRAFT' ? (
+                        <>
+                          <HelpCircle className="mr-2 h-4 w-4" />
+                          Publish Quiz
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="mr-2 h-4 w-4" />
+                          Unpublish Quiz
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => updateQuizview(quiz.id, quiz.viewAnswers)}
+                    >
+                      {quiz.viewAnswers === false ? (
+                        <>
+                          <EyeOff className="mr-2 h-4 w-4" />
+                          Desactivate answer view
+                        </>
+                      ) : (
+                        <>
+                          <HelpCircle className="mr-2 h-4 w-4" />
+                          Enable Answer view
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Quiz
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="flex gap-4 text-sm text-muted-foreground">
+                  <span>Category:{quiz.quizcategorie} Questions</span>
+                  <span>Created {formatRelativeTime(quiz.createdAt)}</span>
+                </div>
+                <LinkWithLoading 
+                  href={`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id}`} 
+                  loadingText="Opening lesson..." 
+                > 
+                  View Quiz 
+                </LinkWithLoading> 
+                
+                <LinkWithLoading 
+                  href={`/dashboard/teacher/courses/${courseId}/quizzes/${quiz.id}/edit`} 
+                  loadingText="Opening lesson..." 
+                > 
+                  Add Questions 
+                </LinkWithLoading> 
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    ) : (
+      <div className="rounded-md border border-dashed p-6 text-center">
+        <File className="mx-auto h-8 w-8 text-muted-foreground" />
+        <h3 className="mt-2 font-medium">No Quizzes yet</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          There are no additional quizzes for this lesson
+        </p>
+      </div>
+    )}
+  </div>
+</TabsContent>
 
 
         <TabsContent value="students" className="mt-4">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold">Enrolled Students</h2>
             <div className="flex gap-2">
-              <Link href={`/dashboard/teacher/courses/${courseId}/rankings`}>
+              <Link href={`/dashboard/teacher/rankings`}>
                 <Button variant="outline">View Rankings</Button>
               </Link>
-              <Button variant="outline">Export List</Button>
+              {/*<Button variant="outline">Export List</Button>*/}
             </div>
           </div>
 
@@ -599,6 +683,15 @@ const handleChapterCreated = () => {
         isOpen={isCreateChapterModalOpen}
         onSuccess={()=>handleChapterCreated()}
         onClose={() => setIsCreateChapterModalOpen(false)}
+      />
+       <CreateQuizModal
+        courseId={courseId}
+        userId={userId}
+        isOpen={isCreateQuizModalOpen}
+        isChapterIdProvided={false}
+        isCourseIdProvided={true}
+        onSuccess={()=>handleQuizCreated()}
+        onClose={() => setIsCreateQUizModalOpen(false)}
       />
       
 

@@ -14,8 +14,15 @@ import {formatDuration} from "@/app/utils/functions"
 
 
 
+
 export default function LessonPage() {
   const { courseId, chapterId,lessonId } = useParams() as { courseId: string; chapterId: string; lessonId: string }
+  let DOMPurify;
+  if (typeof window !== 'undefined') {
+    DOMPurify = require('dompurify');
+  }
+ 
+ 
   const [lesson, setLesson] = useState<any>(null)
   const [materials, setMaterials] = useState<CourseMaterial[]>([])
   const[userId,setUserId]=useState('')
@@ -205,9 +212,15 @@ useEffect(()=>{
             </CardHeader>
             <CardContent>
               <div className="prose max-w-none">
-                {lesson.content.split("\n\n").map((paragraph: string, i: number) => (
-                  <p key={i}>{paragraph}</p>
-                ))}
+              <div className="space-y-4">
+              <div 
+            className="prose max-w-none" 
+            dangerouslySetInnerHTML={{ 
+              __html: DOMPurify?.sanitize(lesson.html || '<p>No content available</p>') || 
+                      (lesson.html || '<p>No content available</p>')
+            }} 
+          />
+              </div>
               </div>
             </CardContent>
           </Card>

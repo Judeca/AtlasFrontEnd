@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, BookOpen, CheckCircle, ChevronLeft, ChevronRight, File, Film, FileText,Trophy } from "lucide-react"
+import { ArrowLeft, BookOpen, CheckCircle, ChevronLeft, ChevronRight, File, Film, FileText,Trophy, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -12,6 +12,10 @@ import api from "@/app/utils/axiosInstance"
 import Image from "next/image"
 import { toast } from "sonner"
 import {FileType,CourseMaterial,fileTypeIcons,isMediaFile} from "@/app/utils/fileTypes"
+import { formatDuration } from "@/app/utils/functions"
+import { QuizWarningModal } from "@/components/quiz-warning-modal"
+import { IconLinkWithLoading } from "@/components/icon-link-with-loading"
+
 
 
 
@@ -20,10 +24,14 @@ export default function CoursePage() {
   const { courseId, chapterId } = useParams() as { courseId: string; chapterId: string }
   const router = useRouter()
   const[userId,setUserId]=useState('')
+  const [showWarning, setShowWarning] = useState(false)
   const [quizzes, setQuizzes] = useState<any[]>([])
+  const [quizId, setQuizId] = useState<any>("")
   const [chapters, setChapters] = useState<any[]>([])
   const [materials, setMaterials] = useState<CourseMaterial[]>([])
   const [course, setCourse] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingchapterId, setIsLoadingchapterId] = useState("")
   const [loading, setLoading] = useState({
     course: true,
     chapters: true,
@@ -36,14 +44,12 @@ export default function CoursePage() {
     quizzes: null,
     materials: null
   })
-
+ 
 
   //fetchIDof User from localstorage
   useEffect(() => {
     const userID = localStorage.getItem("userId"); 
-    console.log("HERE IS ",userID)
     if (userID) {
-      console.log(userID)
       setUserId(userID)
     }
   },[] );
@@ -67,12 +73,12 @@ export default function CoursePage() {
       }));
 
     setMaterials(validMaterials);
-       }else {console.log("error juve at response")}
+       }else {console.log("error  at response")}
       
       
     } catch (err) {
       console.error(error,err)
-      console.log("here is the error:" ,err,"and this also:",error )
+      
       toast.error("Error Loading materials", {
         description: "Failed to load lesson materials"
       });
@@ -139,7 +145,7 @@ export default function CoursePage() {
     }
     const fetchQuizzes = async () => {
       try {
-        const response = await api.get(`quiz/quizzes/by-course/${courseId}`)
+        const response = await api.get(`quiz/quizzes-publish/by-course/${courseId}`)
         setQuizzes(response.data)
       } catch (err) {
         toast.error("Error Fetching quizzes ",{
@@ -154,6 +160,8 @@ export default function CoursePage() {
 
   // Handle chapter start/continue
   const handleChapterStart = async (chapterId: string,status:string) => {
+    setIsLoadingchapterId(chapterId)
+    setIsLoading(true)
     try {
       // Create progress record if it doesn't exist
       if (status=="NOT_STARTED"){
@@ -174,6 +182,12 @@ export default function CoursePage() {
     }
   }
 
+
+  const settingquizId=(quizIdset:string)=>{
+   setQuizId(quizIdset)
+   setShowWarning(true)
+
+  }
   if (loading.course) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -188,9 +202,12 @@ export default function CoursePage() {
         <div className="text-red-500">
           {'Failed to load course'}
         </div>
-        <Link href="/dashboard/student/courses">
-          <Button variant="outline">Back to courses</Button>
-        </Link>
+        <IconLinkWithLoading
+          href={`/dashboard/student/courses`}
+          icon={<ArrowLeft className="h-4 w-4" />}
+          srText="Back to courses"
+          variant="ghost"
+        /> 
       </div>
     )
   }
@@ -199,12 +216,12 @@ export default function CoursePage() {
     <div className="grid gap-6">
       {/* Course Header */}
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/student/courses">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="sr-only">Back to courses</span>
-          </Button>
-        </Link>
+      <IconLinkWithLoading
+          href={`/dashboard/student/courses`}
+          icon={<ArrowLeft className="h-4 w-4" />}
+          srText="Back to courses"
+          variant="ghost"
+        /> 
         <div className="flex-1">
           <div className="flex items-center gap-4">
           <Image
@@ -244,7 +261,7 @@ export default function CoursePage() {
             <Progress value={course.courseprogress} className="h-2" />
           </div>
           <div className="mt-4 flex justify-end">
-            <Link href={`/dashboard/student/courses/${courseId}/rankings`}>
+            <Link href={`/dashboard/student/rankings`}>
               <Button variant="outline" size="sm">
                 <Trophy className="mr-2 h-4 w-4" />
                 View Rankings
@@ -304,16 +321,25 @@ export default function CoursePage() {
                         <div className="text-sm text-muted-foreground">
                           {chapter.lessons} {chapter.lessons === 1 ? "lesson" : "lessons"}
                         </div>
+                      
                         <Button
-                          onClick={() => handleChapterStart(chapter.id,chapter.status)}
-                        >
-                          {chapter.status === 'NOT_STARTED' 
+                        onClick={() => handleChapterStart(chapter.id,chapter.status)}
+                        disabled={isLoadingchapterId===chapter.id}
+                      >
+                        {isLoadingchapterId===chapter.id ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          <> {chapter.status === 'NOT_STARTED' 
                             ? 'Start Chapter'
                             : chapter.status === 'IN_PROGRESS'
                             ? 'Continue Chapter'
                             : 'View Chapter'}
-                          <ChevronRight className="ml-2 h-4 w-4" />
-                        </Button>
+                        <ChevronRight className="ml-2 h-4 w-4" /></>
+                        )}
+                      </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -409,22 +435,28 @@ export default function CoursePage() {
                   <div className="flex gap-4 text-xs text-muted-foreground mt-1">
                     <span>{quiz.quizcategorie} questions</span>
                     <span>Created {new Date(quiz.createdAt).toLocaleDateString()}</span>
+                    <span>Duration:{formatDuration(quiz.duration)} mins</span>
                   </div>
                 </div>
-
-                <Link
-                  href={`/dashboard/student/courses/${courseId}/quizzes/${quiz.id}`}
-                >
-                  <Button>
+ 
+                  <Button onClick={() => settingquizId(quiz.id)}>
                     Try the quiz
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
-                </Link>
+                
               </div>
             ))
           )}
         </TabsContent>
       </Tabs>
+
+      <QuizWarningModal
+        isOpen={showWarning}
+        onClose={() => setShowWarning(false)}
+        onStartQuiz={() => {
+          window.location.href = `/dashboard/student/courses/${courseId}/quizzes/${quizId}`
+        }}
+      />
     </div>
   )
 }

@@ -15,6 +15,9 @@ import api from "@/app/utils/axiosInstance"
 import {formatDuration} from "@/app/utils/functions"
 
 import {FileType,CourseMaterial,fileTypeIcons, isMediaFile,Lesson} from "@/app/utils/fileTypes"
+import Editor from "@/components/text-editor/Editor"
+import { jsonToHtml } from "@/lib/tiptapConverter"
+import AnimatedUpload from "@/components/AnimatedLoading"
 
 
 
@@ -25,6 +28,10 @@ export default function LessonPage() {
     lessonId: string 
   }
 
+  let DOMPurify;
+if (typeof window !== 'undefined') {
+  DOMPurify = require('dompurify');
+}
   const [isEditing, setIsEditing] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [materials, setMaterials] = useState<CourseMaterial[]>([])
@@ -43,6 +50,7 @@ export default function LessonPage() {
     duration: 0,
     order: 0,
     chapterId: "",
+    html:"",
     createdAt: "",
     updatedAt: "",
     chapter: {
@@ -80,19 +88,11 @@ export default function LessonPage() {
   }, [lessonId])
 
   const handleSave = async () => {
-    try {
-      await api.put(`lesson/${lessonId}`, {
-        title: lessonData.title,
-        content: lessonData.content,
-        duration: lessonData.duration
-      })
-      setIsEditing(false)
+
       toast.success("Lesson updated successfully")
-      fetchLesson() // Refresh data
-    } catch (error) {
-      console.error("Error updating lesson:", error)
-      toast.error("Failed to update lesson")
-    }
+      fetchLesson() 
+      
+   
   }
 
 
@@ -192,7 +192,15 @@ useEffect(() => {
     }
   };
 
- 
+  const handleEditorSave = (success: boolean) => {
+    if (success) {
+      toast.success("Lesson content saved successfully");
+      fetchLesson(); // Refresh lesson data
+      setIsEditing(false)
+    } else {
+      toast.error("Failed to save lesson content");
+    }
+  }; 
 
   return (
     <div className="grid gap-6">
@@ -224,10 +232,6 @@ useEffect(() => {
               <Button variant="outline" onClick={() => setIsEditing(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSave}>
-                <Save className="mr-2 h-4 w-4" />
-                Save Changes
-              </Button>
             </>
           ) : (
             <>
@@ -255,45 +259,29 @@ useEffect(() => {
               <CardDescription>The main content of this lesson</CardDescription>
             </CardHeader>
             <CardContent>
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="duration">Duration (minutes)</Label>
-                    <Input
-                      id="duration"
-                      name="duration"
-                      type="number"
-                      min="1"
-                      value={lessonData.duration}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="content">Content</Label>
-                    <Textarea
-                      id="content"
-                      name="content"
-                      value={lessonData.content}
-                      onChange={handleChange}
-                      rows={12}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <BookOpen className="h-4 w-4" />
-                    <span>{formatDuration(lessonData.duration)} minutes</span>
-                    <span>•</span>
-                    <span>Last updated: {new Date(lessonData.updatedAt).toLocaleDateString()}</span>
-                  </div>
-                  <div className="prose max-w-none">
-                    {lessonData.content.split("\n\n").map((paragraph, i) => (
-                      <p key={i}>{paragraph}</p>
-                    ))}
-                  </div>
-                </div>
-              )}
+            {isEditing ? (
+              <div className="space-y-4">
+                
+                <Editor 
+                  lessonId={lessonId}
+                  initialContent={lessonData.content}
+                  onSave={handleEditorSave}
+                />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                
+                <div 
+            className="prose max-w-none" 
+            dangerouslySetInnerHTML={{ 
+              __html: DOMPurify?.sanitize(lessonData.html || '<p>No content available</p>') || 
+                      (lessonData.html || '<p>No content available</p>')
+            }} 
+          />
+              </div>
+            )}
+               
+              
             </CardContent>
           </Card>
         </TabsContent>
@@ -327,9 +315,11 @@ useEffect(() => {
             </CardHeader>
             <CardContent>
               {isUploading ? (
-                <div className="flex items-center justify-center p-8">
-                  <p>Uploading file...</p>
-                </div>
+              <AnimatedUpload 
+              message="Processing your documents..." 
+              size="sm" 
+              color="purple"
+            />
               ) : lessonData._count.coursematerials === 0 ? (
                 <div className="rounded-md border p-4 text-center">
                   <p className="text-sm text-muted-foreground">

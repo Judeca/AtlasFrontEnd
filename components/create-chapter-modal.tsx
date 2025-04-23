@@ -61,7 +61,7 @@ export function CreateChapterModal({ courseId, isOpen,onSuccess, onClose }: Crea
 
         // Reset form and close modal
         setFormData({ title: "", description: "" });
-        onSuccess()
+        onSuccess();
         onClose();
         
         // Refresh the page to show new course

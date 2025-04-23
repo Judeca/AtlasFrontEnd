@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import api from "@/app/utils/axiosInstance"
+import { IconLinkWithLoading } from "@/components/icon-link-with-loading"
 
 
 
@@ -32,6 +33,8 @@ interface Quiz {
     id: string
     text: string
     questionType: string
+    fileName:string
+    fileUrl:string 
     difficulty: string
     options: {
       id: string
@@ -45,6 +48,7 @@ export default function QuizPage() {
   const { courseId, quizId } = useParams() as { courseId: string; quizId: string }
   const router = useRouter()
   const [answers, setAnswers] = useState<Answer[]>([])
+  const answersRef = useRef<Answer[]>([]); 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0) // in seconds
   const [attemptId, setAttemptId] = useState("")
@@ -52,9 +56,14 @@ export default function QuizPage() {
   const [timeTaken, setTimeTaken] = useState(0)
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(true)
-  const startTime = useRef(Date.now())
+  const startTime = useRef(Date.now()) 
 
-
+const testtime=()=>{
+  const endtime=Date.now()
+  console.log("starttime:",startTime)
+  console.log("endtime:",endtime)
+  console.log("timetaken:",(endtime-startTime.current)/1000) 
+}
 
   useEffect(() => { 
 
@@ -92,16 +101,30 @@ export default function QuizPage() {
   useEffect(() => {
     if (!quiz) return;
 
+    const savedDeadline = localStorage.getItem("quizDeadline");
+
+    let deadline: number;
+    if (savedDeadline) {
+      deadline = parseInt(savedDeadline, 10);
+    } else {
+      const durationInSeconds = quiz.duration; //quiz time 
+      deadline = Date.now() + durationInSeconds * 1000;
+      localStorage.setItem("quizDeadline", deadline.toString());
+    }
+
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          handleTimeoutSubmit()
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
+      const now = Date.now();
+      const timeLeftInSeconds = Math.round((deadline - now) / 1000);
+  
+      if (timeLeftInSeconds <= 0) {
+        clearInterval(timer);
+        localStorage.removeItem("quizDeadline");
+        handleTimeoutSubmit();
+        setTimeLeft(0);
+      } else {
+        setTimeLeft(timeLeftInSeconds);
+      }
+    }, 1000);
 
     return () => clearInterval(timer)
   }, [quiz])
@@ -115,22 +138,23 @@ export default function QuizPage() {
   const calculateTimeTaken = () => {
     const endTime = Date.now()
     const timeSpent = Math.floor((endTime - startTime.current) / 1000)
+    console.log("Here is the time spent:",timeSpent)
     return Math.min(timeSpent, quiz?.duration || 0)
-  }
+  } 
 
   const handleAnswerSelect = (questionId: string, optionId: string) => {
     setAnswers(prev => {
       const existingAnswerIndex = prev.findIndex(a => a.questionId === questionId)
+      let newAnswers;
       
       if (existingAnswerIndex >= 0) {
-        const updated = [...prev]
-        updated[existingAnswerIndex] = {
+        newAnswers = [...prev]
+        newAnswers[existingAnswerIndex] = {
           questionId,
           chosenOptions: [optionId]
         }
-        return updated
       } else {
-        return [
+        newAnswers = [
           ...prev,
           {
             questionId,
@@ -138,6 +162,9 @@ export default function QuizPage() {
           }
         ]
       }
+      
+      answersRef.current = newAnswers // Update the ref
+      return newAnswers
     })
   }
 
@@ -151,26 +178,55 @@ export default function QuizPage() {
     const submissionData = {
       answers: quiz.questions.map(question => ({
         questionId: question.id,
-        chosenOptions: answers.find(a => a.questionId === question.id)?.chosenOptions || []
+        chosenOptions: answersRef.current.find(a => a.questionId === question.id)?.chosenOptions || []
       })),
       timeTaken: finalTimeTaken
     }
 
-    try {
-      const attemptCreation = {
-        quizId: quizId,
-        studentId: localStorage.getItem("studentId"),
-        timeTaken: finalTimeTaken
-      }
+    const attemptCreation = {
+      quizId: quizId,
+      studentId: userId,
+      timeTaken: finalTimeTaken
+    }
 
+    const timeToSend = {
+      timeTaken: `${finalTimeTaken}`,
+    }
+
+
+    
+    try {  
       const response = await api.post(`/quizattemp/createquiz-attempts`, attemptCreation)
       if (response.status === 201) {
-        const newAttemptId = response.data.id
-        await api.post(`/quizattemp/quiz-attempts/${newAttemptId}/submit-answers`, submissionData)
-        toast.warning("Time's up! Quiz auto-submitted")
-        router.push(`/dashboard/student/courses/${courseId}/quizzes/${quizId}/results?attemptId=${newAttemptId}`)
+        const newAttemptId = response.data.id 
+        setAttemptId(newAttemptId)
+        localStorage.setItem("attemptIdforscore", newAttemptId)
+        toast.success("Quiz attempt created successfully")
+
+        try { 
+          const response = await api.post(
+            `/quizattemp/quiz-attempts/${newAttemptId}/submit-answers`,
+            submissionData
+          )
+          if (response) {
+            toast.success("Quiz finish Auto submition!!")
+            try {
+              await api.post(
+                `/quizattemp/quiz-attempts/${newAttemptId}/calculate-score`,
+                timeToSend
+              )
+              router.push(`/dashboard/student/courses/${courseId}/quizzes/${quizId}/results`)
+            } catch(error) {
+              console.error("Error calculating score:", error)
+              toast.error("Error calculating score")
+            }
+          }
+        } catch(error) {
+          console.error("Error submitting answers:", error)
+          toast.error("Error submitting answers")
+        }
       }
-    } catch (error) {
+    }  catch (error) {
       console.error("Timeout submission error:", error)
       toast.error("Failed to auto-submit quiz")
     } finally {
@@ -217,6 +273,7 @@ export default function QuizPage() {
             submissionData
           )
           if (response) {
+            localStorage.removeItem("quizDeadline");
             try {
               await api.post(
                 `/quizattemp/quiz-attempts/${newAttemptId}/calculate-score`,
@@ -264,12 +321,12 @@ export default function QuizPage() {
     <div className="grid gap-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link href={`/dashboard/student/courses/${courseId}`}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Back to course</span>
-            </Button>
-          </Link>
+          <IconLinkWithLoading
+            href={`/dashboard/student/courses/${courseId}`}
+            icon={<ArrowLeft className="h-4 w-4" />}
+            srText="Back to courses"
+            variant="ghost"
+          /> 
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{quiz.title}</h1>
             <p className="text-muted-foreground">
@@ -304,6 +361,11 @@ export default function QuizPage() {
                 </CardHeader>
                 <CardContent>
                   <h2 className="text-xl font-semibold mb-4">{question.text}</h2>
+                  <div>{question.fileUrl &&  <img 
+                        src={question.fileUrl} 
+                        alt={question.fileName || "Question image"}
+                        className="max-h-40 rounded-md border"
+                      />}</div> 
 
                   <RadioGroup
                     value={selectedOptionId || ""}

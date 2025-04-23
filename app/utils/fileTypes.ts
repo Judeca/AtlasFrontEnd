@@ -22,6 +22,7 @@ export interface Lesson {
   id: string
   title: string
   content: string
+  html:string|null
   duration: number
   order: number
   chapterId: string

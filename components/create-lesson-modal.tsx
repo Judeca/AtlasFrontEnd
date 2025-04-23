@@ -34,8 +34,8 @@ export function CreateLessonModal({ courseId, chapterId, isOpen,onSuccess, onClo
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
-    content: "",
     duration: "",
+    
 
   })
 
@@ -54,7 +54,6 @@ export function CreateLessonModal({ courseId, chapterId, isOpen,onSuccess, onClo
     try {
       const response = await api.post("/lesson/create-lessons", {
         title: formData.title,
-        content: formData.content,
         duration:formData.duration,
         chapterId: chapterId
       });
@@ -66,7 +65,7 @@ export function CreateLessonModal({ courseId, chapterId, isOpen,onSuccess, onClo
         });
 
         // Reset form and close modal
-        setFormData({ title: "", content: "", duration: "" })
+        setFormData({ title: "",  duration: "" })
         onSuccess()
         onClose();
         
@@ -81,7 +80,7 @@ export function CreateLessonModal({ courseId, chapterId, isOpen,onSuccess, onClo
       });
     } finally {
       setIsLoading(false);
-    }
+    } 
   };
 
   return (
@@ -104,17 +103,6 @@ export function CreateLessonModal({ courseId, chapterId, isOpen,onSuccess, onClo
                 value={formData.title}
                 onChange={handleChange}
                 required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="content">Content</Label>
-              <Textarea
-                id="content"
-                name="content"
-                placeholder="Provide the content for this lesson"
-                value={formData.content}
-                onChange={handleChange}
-                rows={4}
               />
             </div>
             <div className="grid gap-2">
