@@ -466,7 +466,7 @@ const handleAssignmentSubmit = async (e: React.ChangeEvent<HTMLInputElement>, as
                             <IconComponent className="h-5 w-5 text-muted-foreground" />
                           </div>
                           <div>
-                            <p className="font-medium">{material.fileUrl?.split('/').pop() || 'Untitled Resource'}</p>
+                            <p className="font-medium">{material.fileName || 'Untitled Resource'}</p>
                             <p className="text-sm text-muted-foreground capitalize">
                               {material.fileType?.toLowerCase()} • {new Date(material.uploadedAt).toLocaleDateString()}
                             </p>

@@ -15,6 +15,7 @@ import {FileType,CourseMaterial,fileTypeIcons,isMediaFile} from "@/app/utils/fil
 import { formatDuration } from "@/app/utils/functions"
 import { QuizWarningModal } from "@/components/quiz-warning-modal"
 import { IconLinkWithLoading } from "@/components/icon-link-with-loading"
+import { LinkWithLoading } from "@/components/link-with-loading"
 
 
 
@@ -261,12 +262,14 @@ export default function CoursePage() {
             <Progress value={course.courseprogress} className="h-2" />
           </div>
           <div className="mt-4 flex justify-end">
-            <Link href={`/dashboard/student/rankings`}>
-              <Button variant="outline" size="sm">
-                <Trophy className="mr-2 h-4 w-4" />
-                View Rankings
-              </Button>
-            </Link>
+            
+            <LinkWithLoading 
+              href={`/dashboard/student/rankings`} 
+              loadingText="Opening Page..." 
+              > 
+              <Trophy className="mr-2 h-4 w-4" />
+              View Rankings
+              </LinkWithLoading> 
           </div>
         </CardContent> 
       </Card>
@@ -376,7 +379,7 @@ export default function CoursePage() {
                             <FileIcon className="h-5 w-5 text-muted-foreground" />
                           </div>
                           <div>
-                            <p className="font-medium">{material.fileUrl?.split('/').pop() || 'Untitled Resource'}</p>
+                            <p className="font-medium">{material.fileName || 'Untitled Resource'}</p>
                             <p className="text-sm text-muted-foreground capitalize">
                               {material.fileType?.toLowerCase()} • {new Date(material.uploadedAt).toLocaleDateString()}
                             </p>

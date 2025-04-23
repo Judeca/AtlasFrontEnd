@@ -216,14 +216,9 @@ export default function QuizResultsPage() {
                 </div>
 
                 <div className="flex justify-center gap-4">
-                  <IconLinkWithLoading
-                  href={`/dashboard/student/courses/${courseId}`}
-                  icon={<ArrowLeft className="h-4 w-4" />}
-                  srText="Back to courses"
-                  variant="ghost"
-                /> 
+                  
                   <LinkWithLoading 
-                    href={`/dashboard/student/rankings`} 
+                    href={`/dashboard/student/courses/${courseId}/quizzes/${quizId}/rankings`} 
                     loadingText="Opening page..." 
                     > 
                     View Rankings
@@ -287,7 +282,7 @@ export default function QuizResultsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-          {quizzes.viewAnswers === false ? (
+          {quizzes?.viewAnswers === false ? (
   results.questions.map((question, index) => (
     <div key={question.questionId} className="rounded-md border p-4">
       {question.correctAnswer === question.userAnswer 

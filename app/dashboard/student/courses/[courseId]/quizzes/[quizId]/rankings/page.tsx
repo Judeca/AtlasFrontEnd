@@ -118,7 +118,7 @@ export default function QuizRankingsPage()  {
   return (
     <div className="grid gap-6">
       <div className="flex items-center gap-2">
-        <Link href={`/dashboard/student/courses/${courseId}/quizzes/${quizId}`}>
+        <Link href={`/dashboard/student/courses/${courseId}`}>
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-4 w-4" />
             <span className="sr-only">Back to quiz</span>

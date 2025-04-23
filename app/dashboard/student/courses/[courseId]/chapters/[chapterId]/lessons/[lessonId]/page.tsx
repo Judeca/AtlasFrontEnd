@@ -2,7 +2,7 @@
 import { Badge } from "@/components/ui/badge"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, BookOpen, CheckCircle, ChevronLeft, ChevronRight, File, Film, FileText } from "lucide-react"
+import { ArrowLeft, BookOpen, CheckCircle, ChevronLeft, ChevronRight, File, Film, FileText, Loader2, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -35,14 +35,12 @@ export default function LessonPage() {
     materials: null
   })
   const [isCompleted, setIsCompleted] = useState(false)
-  
+  const [isLoading, setIsLoading] = useState(false)
 
     //fetchIDof User from localstorage
     useEffect(() => {
       const userID = localStorage.getItem("userId"); 
-      console.log("HERE IS ",userID)
       if (userID) {
-        console.log(userID)
         setUserId(userID)
       }
     },[] );
@@ -125,6 +123,7 @@ useEffect(()=>{
 
   const handleMarkComplete = async () => {
     try {
+      setIsLoading(true)
     
       // Update progress to completed
       const response = await api.put(`/lessonprogress/lesson-progress-update/${lessonId}`, {
@@ -253,7 +252,7 @@ useEffect(()=>{
                             <IconComponent className="h-5 w-5 text-muted-foreground" />
                           </div>
                           <div>
-                            <p className="font-medium">{material.fileUrl?.split('/').pop() || 'Untitled Resource'}</p>
+                            <p className="font-medium">{material.fileName|| 'Untitled Resource'}</p>
                             <p className="text-sm text-muted-foreground capitalize">
                               {material.fileType?.toLowerCase()} • {new Date(material.uploadedAt).toLocaleDateString()}
                             </p>
@@ -298,10 +297,20 @@ useEffect(()=>{
               </div>*/}
               <div className="flex gap-2">
                 {!isCompleted && (
-                  <Button onClick={handleMarkComplete}>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Mark as Complete
-                  </Button>
+                  
+                   <Button  onClick={handleMarkComplete} disabled={isLoading}>
+                   {isLoading ? (
+                     <>
+                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                       Proceding...
+                     </>
+                   ) : (
+                     <>
+                       <Save className="mr-2 h-4 w-4" />
+                       Mark as Complete
+                     </>
+                   )}
+                 </Button>  
                 )}
                 {/*{lesson.nextLessonId  && (
                   <Link
