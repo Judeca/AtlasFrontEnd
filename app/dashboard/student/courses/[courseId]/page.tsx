@@ -372,11 +372,12 @@ export default function CoursePage() {
                 <div className="space-y-4">
                   {materials.map((material) => {
                      const FileIcon = material.fileType ? fileTypeIcons[material.fileType] : File
+                     const IconComponent = FileIcon || FileText;
                     return (
                       <div key={material.id} className="flex items-center justify-between rounded-md border p-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                            <FileIcon className="h-5 w-5 text-muted-foreground" />
+                            <IconComponent className="h-5 w-5 text-muted-foreground" />
                           </div>
                           <div>
                             <p className="font-medium">{material.fileName || 'Untitled Resource'}</p>
