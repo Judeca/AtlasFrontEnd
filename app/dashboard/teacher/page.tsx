@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
 import api from "@/app/utils/axiosInstance"
 import { LinkWithLoading } from "@/components/link-with-loading"
+import { OnlineIndicator } from "@/app/components/OnlineIndicator"
 
 interface Course {
   id: string
@@ -227,6 +228,7 @@ export default function TeacherDashboard() {
           </div>
         </CardContent>
       </Card>
+      <OnlineIndicator/>
     </div>
   )
 }

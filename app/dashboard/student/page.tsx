@@ -1,4 +1,4 @@
-// components/EnrolledCourses.tsx
+
 "use client"
 import { BookOpen, Clock, Layers, FileText, Users, Award, BarChart2 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -38,7 +38,7 @@ export default function EnrolledCourses() {
         const response = await api.get(`/course/student-courses-threeinfo/${userId}`)
         setData(response.data)
         
-        // Generate random stats for demonstration
+        //  random stats for demonstration
         setStats({
           totalEnrolled: response.data.totalEnrolled || 0,
           activeStudents: Math.floor(Math.random() * 50) + 10, // Random between 10-60

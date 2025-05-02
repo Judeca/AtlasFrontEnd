@@ -1,11 +1,11 @@
 "use client"
 
 import { useState,useEffect } from "react"
-
+import { useSocket } from '@/app/context/SocketContext';
 import api from "@/app/utils/axiosInstance"
 
 import Link from "next/link"
-import { ArrowLeft, ChevronRight, FolderPlus, Pencil, Trash2, FileText, HelpCircle, Upload,File, EyeOff } from "lucide-react"
+import { ArrowLeft, ChevronRight, FolderPlus, Pencil, Trash2, FileText, HelpCircle, Upload,File, EyeOff, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,8 +22,13 @@ import { formatDuration, formatRelativeTime } from "@/app/utils/functions"
 import { IconLinkWithLoading } from "@/components/icon-link-with-loading"
 import { LinkWithLoading } from "@/components/link-with-loading"
 import AnimatedUpload from "@/components/AnimatedLoading"
+import { OnlineIndicator } from "@/app/components/OnlineIndicator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function CoursePage() {
+  const { socket } = useSocket();
   const { courseId, chapterId } = useParams() as { courseId: string; chapterId: string }
   const [isCreateChapterModalOpen, setIsCreateChapterModalOpen] = useState(false)
   const [isCreateQuizModalOpen, setIsCreateQUizModalOpen] = useState(false)
@@ -35,14 +40,28 @@ export default function CoursePage() {
   const [materials, setMaterials] = useState<CourseMaterial[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [userId,setUserId]=useState("")
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
+  const [courseTeachers, setCourseTeachers] = useState<any[]>([]);
+  const [isLoadingTeachers, setIsLoadingTeachers] = useState(true);
+  const [isAddingTeacher, setIsAddingTeacher] = useState(false);
+  const [teacherToDelete, setTeacherToDelete] = useState<any | null>(null);
 
   const [loading, setLoading] = useState({
-    chapter: true,
+    chapter: false,
     lessons: true,
     assignments: true,
     materials:true,
-    quizzes:true
+    courseTeachers: false,
+    quizzes:false,
+    deleting: false
   })
+
+  const [isLoadingChapters, setIsLoadingChapters] = useState(true);
+  const [isLoadingquizzes, setIsLoadingquizzes] = useState(true);
+  const [isLoadingmaterials, setIsLoadingmaterials] = useState(true);
+  const [isLoadingcourseTeacher, setIsLoadingcourseTeacher] = useState(true);
+
   
   const [error, setError] = useState({
     lesson: null,
@@ -54,23 +73,96 @@ export default function CoursePage() {
   useEffect(() => { 
     const userID = localStorage.getItem("userId");   
     if (userID) { 
-    console.log(userID) 
     setUserId(userID) 
     } 
     },[userId] ); 
 
 
+
+    //fetch all teachers
+    useEffect(() => {
+      const fetchTeachers = async () => {
+        try {
+          const response = await api.get('/users/Allteachers');
+          setTeachers(response.data);
+        } catch (error) {
+          toast.error('Failed to load teachers');
+        } finally {
+          setIsLoadingTeachers(false);
+        }
+      };
+      fetchTeachers();
+    }, []);
+
+     //fetch only enroll teachers
+     const fetchenrolTeachers = async () => {
+      try {
+        const response = await api.get(`/teachercourseenrollement/teachers-enrol/${courseId}`);
+        setCourseTeachers(response.data);
+      } catch (error) {
+        toast.error('Failed to load teachers');
+      } finally {
+        setIsLoadingcourseTeacher(false)
+      }
+    };
+     useEffect(() => {
+      
+      fetchenrolTeachers();
+    }, []);
+
+    const handleDeleteTeacher = async () => {
+      if (!teacherToDelete?.id) return;
+      
+      setLoading({ ...loading, deleting: true });
+      try {
+        const response = await api.delete(`/teachercourseenrollement/enrollments/delete-teacher/${teacherToDelete.teacherId}/${courseId}`)
+        
+        // Refresh course teachers
+        const res = await api.get(`/teachercourseenrollement/teachers-enrol/${courseId}`);
+        setCourseTeachers(res.data);
+        toast.success('Teacher removed successfully');
+      } catch (error) {
+        toast.error('Failed to remove teacher');
+      } finally {
+        setTeacherToDelete(null);
+        setLoading({ ...loading, deleting: false });
+      }
+    };
+
+    //Add teacher
+    const handleAddTeacher = async () => {
+      if (!selectedTeacherId || !courseId) return;
+      const teacherdata={
+        teacherId: selectedTeacherId,
+            courseId,
+            role: 'AUDITOR' 
+      }
+      
+      setIsAddingTeacher(true);
+      try {
+        const response = await api.post('/teachercourseenrollement/enrollments/teacher', teacherdata);
+        
+        toast.success('Teacher added successfully');
+        setSelectedTeacherId(''); // Reset selection
+        fetchenrolTeachers();
+      } catch (error) {
+        toast.error('Failed to add teacher');
+      } finally {
+        setIsAddingTeacher(false);
+      }
+    };
  //fetch course Info
 
  const fetchCourse = async () => {
   try {
     const response = await api.get(`/course/getcourse-only/${courseId}`);
-    console.log("course Info data :",response.data)
     setCourse(response.data);
   } catch (error) {
     console.error("Error fetching chapters:", error);
   }
 };
+
+
 
  useEffect(()=>{
   if(!courseId){
@@ -89,7 +181,7 @@ export default function CoursePage() {
     } catch (error) {
       console.error("Error fetching chapters:", error);
     } finally {
-      setLoading(prev => ({...prev, chapter: false}));
+      setIsLoadingChapters(false);
     }
   };
 
@@ -110,7 +202,7 @@ export default function CoursePage() {
     } catch (error) {
       console.error("Error fetching chapters:", error);
     }finally {
-      setLoading(prev => ({...prev, quizzes: false}));
+      setIsLoadingquizzes(false)
     }
   };
   useEffect(()=>{
@@ -123,22 +215,31 @@ export default function CoursePage() {
 
 
   //fetch student enrol in a course
+  const fetchStudents = async () => {
+    try {
+      const response = await api.get(`/courseenrollement/courses/${courseId}/enrollments`);
+      setStudents(response.data);
+    } catch (error) {
+      console.error("Error fetching enrolled students:", error);
+    }
+  };
   useEffect(()=>{
     if(!courseId){
       return;
     }
-    const fetchStudents = async () => {
-      try {
-        const response = await api.get(`/courseenrollement/courses/${courseId}/enrollments`);
-        setStudents(response.data);
-      } catch (error) {
-        console.error("Error fetching enrolled students:", error);
-      }
-    }; 
-
     fetchStudents();
 
   },[])
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('userStatusUpdated', fetchStudents);
+
+    return () => {
+      socket.off('userStatusUpdated', fetchStudents);
+    };
+  }, [socket]);
 
 
   // Fetch course materials
@@ -154,7 +255,7 @@ export default function CoursePage() {
       }));
 
     setMaterials(validMaterials);
-       }else {console.log("error juve at response")}
+       }else {console.log("error  at response")}
       
       
     } catch (err) {
@@ -164,7 +265,7 @@ export default function CoursePage() {
         description: "Failed to load course materials"
       });
     } finally {
-      setLoading(prev => ({...prev, materials: false}));
+      setIsLoadingmaterials(false)
     }
   };
 
@@ -234,6 +335,25 @@ const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsUploading(false);
   }
 };
+
+const deletequiz=async(quizId:string)=>{
+  try {
+    const response = await api.delete(`/quiz/delete-quizzes/${quizId}`);
+    toast.success('Quiz removed successfully');
+    fetchQuizzes();
+  } catch (error) {
+    console.error("Error deleting quiz", error);
+  }
+}
+const deletechapter=async(chapterId:string)=>{
+  try {
+    const response = await api.delete(`/chapter/delete-chapter/${chapterId}`);
+    toast.success('chapter removed successfully');
+    fetchChapters();
+  } catch (error) {
+    console.error("Error deleting chapter", error);
+  }
+}
 
 const handleChapterCreated = () => {
  
@@ -326,8 +446,9 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
           </div>
 
           <div className="space-y-4"> 
-          {loading.chapter ? (
+          {isLoadingChapters ? (
                               <div className="flex items-center justify-center h-32">
+                                <div>Fetching...</div>
                                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                               </div>
                             ) : error.chapter ? (
@@ -352,15 +473,16 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        {/*<DropdownMenuItem>
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit Chapter
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        </DropdownMenuItem>*/}
+                       {/*  <DropdownMenuItem>
                           <FileText className="mr-2 h-4 w-4" />
                           Add Assignment
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
+                        </DropdownMenuItem>*/}
+                        <DropdownMenuItem className="text-destructive"
+                        onClick={() => deletechapter(chapter.id)}>
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete Chapter
                         </DropdownMenuItem>
@@ -379,7 +501,7 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
                       loadingText="Opening lesson..."
                     >
                       View Lesson
-                    </LinkWithLoading>
+                    </LinkWithLoading> 
                   </div>
                 </CardContent>
               </Card>
@@ -441,7 +563,7 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
                 </div>
               )}
 
-               {loading.materials ? (
+               {isLoadingmaterials ? (
                               <div className="flex items-center justify-center h-32">
                                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                               </div>
@@ -498,8 +620,9 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
   </div>
 
   <div className="space-y-4">
-    {loading.quizzes ? (
+    {isLoadingquizzes? (
       <div className="flex items-center justify-center h-32">
+        <div>Fetching...</div>
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
       </div>
     ) : error.quizzes ? (
@@ -530,10 +653,10 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                   { /* <DropdownMenuItem>
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit Quiz
-                    </DropdownMenuItem>
+                    </DropdownMenuItem>*/}
                     <DropdownMenuItem 
                       onClick={() => updateQuizStatus(quiz.id, quiz.status)}
                     >
@@ -564,7 +687,8 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
                         </>
                       )}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
+                    <DropdownMenuItem className="text-destructive"
+                    onClick={() => deletequiz(quiz.id)}>
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete Quiz
                     </DropdownMenuItem>
@@ -644,6 +768,10 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
                         View Progress
                       </Button>
                     </div>
+                    <div className={`inline-flex items-center ${student.student?.status === 'online' ? 'text-green-500' : 'text-gray-500'}`}>
+                      <div className={`h-2 w-2 rounded-full mr-2 ${student.student?.status === 'online' ? 'bg-green-500' : 'bg-gray-500'}`}></div>
+                      <div>{student.student?.status}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -652,30 +780,120 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
         </TabsContent>
 
         <TabsContent value="settings" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Course Settings</CardTitle>
-              <CardDescription>Manage your course settings and preferences</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid gap-2">
-                  <h3 className="text-lg font-medium">Danger Zone</h3>
-                  <p className="text-sm text-muted-foreground">These actions cannot be undone</p>
-                  <div className="flex items-center justify-between rounded-md border border-destructive/20 p-4">
-                    <div>
-                      <h4 className="font-medium text-destructive">Delete Course</h4>
-                      <p className="text-sm text-muted-foreground">
-                        This will permanently delete the course and all its content
-                      </p>
-                    </div>
-                    <Button variant="destructive">Delete</Button>
-                  </div>
+  <Card>
+    <CardHeader>
+      <CardTitle>Course Settings</CardTitle>
+      <CardDescription>Manage your course settings and preferences</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div className="space-y-4">
+        {/* Add Teacher Section */}
+        <div className="grid gap-2">
+          <h3 className="text-lg font-medium">Add Co-Teacher</h3>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Label htmlFor="teacher-select">Select Teacher</Label>
+              <Select 
+                onValueChange={(value) => setSelectedTeacherId(value)}
+                disabled={isLoadingTeachers}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={isLoadingTeachers ? "Loading teachers..." : "Select a teacher"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.id}>
+                      {teacher.firstName} {teacher.lastName} ({teacher.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button 
+              onClick={handleAddTeacher}
+              disabled={!selectedTeacherId || isAddingTeacher}
+            >
+              {isAddingTeacher ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding...
+                </>
+              ) : 'Add Teacher'}
+            </Button>
+          </div>
+        </div>
+               {/* Current Co-Teachers List */}
+               {isLoadingcourseTeacher ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              ) : (
+                courseTeachers.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <Label>Current Co-Teachers</Label>
+                    <div className="space-y-2">
+                      {courseTeachers.map(teacher => (
+                        <div key={teacher.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <p className="font-medium">{teacher.teacher.firstName} {teacher.teacher.lastName}</p>
+                            <p className="text-sm text-muted-foreground">{teacher.teacher.email}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setTeacherToDelete(teacher)}
+                            disabled={loading.deleting}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
+
+        {/* Danger Zone */}
+        <div className="grid gap-2">
+          <h3 className="text-lg font-medium">Danger Zone</h3>
+          <p className="text-sm text-muted-foreground">These actions cannot be undone</p>
+          <div className="flex items-center justify-between rounded-md border border-destructive/20 p-4">
+            <div>
+              <h4 className="font-medium text-destructive">Delete Course</h4>
+              <p className="text-sm text-muted-foreground">
+                This will permanently delete the course and all its content
+              </p>
+            </div>
+            <Button variant="destructive">Delete</Button>
+          </div>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+     {/* Delete Confirmation Dialog */}
+     <AlertDialog open={!!teacherToDelete} onOpenChange={(open) => !open && setTeacherToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Co-Teacher?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {teacherToDelete && `Are you sure you want to remove ${teacherToDelete.teacher.firstName} ${teacherToDelete.teacher.lastName} from this course?`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteTeacher}
+              disabled={loading.deleting}
+            >
+              {loading.deleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+</TabsContent>
       </Tabs>
 
       <CreateChapterModal

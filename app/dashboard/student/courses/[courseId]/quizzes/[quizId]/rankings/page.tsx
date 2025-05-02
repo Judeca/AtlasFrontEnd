@@ -174,69 +174,89 @@ export default function QuizRankingsPage()  {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Quiz Performance Rankings</CardTitle>
-          <CardDescription>
-            Students ranked by performance in this quiz (latest attempt shown)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <div className="grid grid-cols-12 gap-4 p-4 font-medium border-b">
-              <div className="col-span-1">Rank</div>
-              <div className="col-span-4">Student</div>
-              <div className="col-span-2">Score</div>
-              <div className="col-span-2">Attempt</div>
-              <div className="col-span-3">Time Taken</div>
+  <CardHeader>
+    <CardTitle>Quiz Performance Rankings</CardTitle>
+    <CardDescription>
+      Students ranked by performance in this quiz (latest attempt shown)
+    </CardDescription>
+  </CardHeader>
+  <CardContent>
+    <div className="rounded-md border overflow-hidden">
+      {/* Desktop Header (hidden on mobile) */}
+      <div className="hidden md:grid grid-cols-12 gap-4 p-4 font-medium border-b bg-muted/50">
+        <div className="col-span-1">Rank</div>
+        <div className="col-span-5">Student</div>
+        <div className="col-span-2 text-center">Score</div>
+        <div className="col-span-2 text-center">Attempt</div>
+        <div className="col-span-2 text-right">Time</div>
+      </div>
+      
+      {rankings.map((student) => {
+        const isYou = yourData?.studentId === student.studentId;
+        return (
+          <div
+            key={student.studentId}
+            className={`grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-4 p-3 md:p-4 border-b last:border-0 items-center ${
+              isYou ? "bg-primary/5" : "hover:bg-muted/50"
+            } transition-colors`}
+          >
+            {/* Rank (Mobile: Top Left) */}
+            <div className="col-span-1 flex items-center order-1">
+              {student.rank === 1 ? (
+                <Trophy className="h-5 w-5 text-yellow-500" />
+              ) : student.rank === 2 ? (
+                <Trophy className="h-5 w-5 text-gray-400" />
+              ) : student.rank === 3 ? (
+                <Trophy className="h-5 w-5 text-amber-700" />
+              ) : (
+                <span className="font-medium">#{student.rank}</span>
+              )}
             </div>
-            {rankings.map((student) => {
-              const isYou = yourData?.studentId === student.studentId
-              return (
-                <div
-                  key={student.studentId}
-                  className={`grid grid-cols-12 gap-4 p-4 border-b last:border-0 items-center ${
-                    isYou ? "bg-muted" : ""
-                  }`}
-                >
-                  <div className="col-span-1 flex items-center">
-                    {student.rank === 1 ? (
-                      <Trophy className="h-5 w-5 text-yellow-500" />
-                    ) : student.rank === 2 ? (
-                      <Trophy className="h-5 w-5 text-gray-400" />
-                    ) : student.rank === 3 ? (
-                      <Trophy className="h-5 w-5 text-amber-700" />
-                    ) : (
-                      <span className="font-medium">{student.rank}</span>
-                    )}
-                  </div>
-                  <div className="col-span-4 flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        {student.firstName.charAt(0)}{student.lastName.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">
-                        {student.firstName} {student.lastName}
-                        {isYou && <span className="ml-2 text-xs text-muted-foreground">(You)</span>}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{student.email}</p>
-                    </div>
-                  </div>
-                  <div className="col-span-2">
-                    {student.score}/{student.totalScore}
-                  </div>
-                  <div className="col-span-2">#{student.attemptNumber}</div>
-                  <div className="col-span-3 flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    <span>{formatTime(student.timeTaken)}</span>
-                  </div>
-                </div>
-              )
-            })}
+
+            {/* Student Info (Mobile: Full Width) */}
+            <div className="col-span-2 md:col-span-5 flex items-center gap-3 order-3 md:order-2">
+              <Avatar className="h-9 w-9 md:h-8 md:w-8">
+                <AvatarFallback>
+                  {student.firstName.charAt(0)}{student.lastName.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">
+                  {student.firstName} {student.lastName}
+                  {isYou && <span className="ml-2 text-xs text-primary">(You)</span>}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">{student.email}</p>
+              </div>
+            </div>
+
+            {/* Score (Mobile: Top Right) */}
+            <div className="col-span-1 flex justify-end md:justify-center items-center order-2 md:order-3">
+              <div className="bg-muted md:bg-transparent rounded-full px-2 py-1 md:px-0 md:py-0">
+                <span className="font-medium">{student.score}</span>
+                <span className="text-muted-foreground text-xs">/{student.totalScore}</span>
+              </div>
+            </div>
+
+            {/* Attempt (Mobile: Bottom Left) */}
+            <div className="col-span-1 flex items-center order-4">
+              <span className="md:hidden text-sm text-muted-foreground mr-1">Attempt:</span>
+              <span className="font-medium">#{student.attemptNumber}</span>
+            </div>
+
+            {/* Time Taken (Mobile: Bottom Right) */}
+            <div className="col-span-1 flex justify-end items-center order-5">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm">{formatTime(student.timeTaken)}</span>
+              </div>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        );
+      })}
+    </div>
+  </CardContent>
+</Card>
+      
     </div>
   )
 }

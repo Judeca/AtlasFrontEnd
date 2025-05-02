@@ -1,7 +1,7 @@
 "use client"
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Layers, ArrowLeft, Eye, EyeOff } from 'lucide-react'
+import { Layers, ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,6 +9,15 @@ import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import api from '@/app/utils/axiosInstance'
 import Link from 'next/link'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose
+} from '@/components/ui/dialog'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -18,6 +27,8 @@ export default function LoginPage() {
   })
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [isResettingPassword, setIsResettingPassword] = useState(false)
+  const [showResetDialog, setShowResetDialog] = useState(false)
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword)
 
@@ -33,14 +44,8 @@ export default function LoginPage() {
       if (response.data) {
         const { token, user } = await response.data 
         document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=strict`;
-        console.log('All cookies:', document.cookie); 
-        // Save token and user data to localStorage
-        //localStorage.setItem('token', response.data.token);
         localStorage.setItem('userId', response.data.user.id);
-        //localStorage.setItem('role', response.data.user.role);
-        //localStorage.setItem('userData', JSON.stringify(response.data.user));
   
-        // Redirect based on role
         switch(response.data.user.role) {
           case 'ADMIN':
             router.push('/dashboard/admin');
@@ -60,6 +65,35 @@ export default function LoginPage() {
       toast.error('Invalid credentials');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const initiatePasswordReset = () => {
+    if (!formData.email) {
+      toast.error('Please enter your email address first');
+      return;
+    }
+    setShowResetDialog(true);
+  };
+
+  const handleForgotPassword = async () => {
+    setIsResettingPassword(true);
+    try {
+      const response = await api.post('/auth/send-password-reset-email', {
+        email: formData.email
+      });
+      
+      if (response.data.success) {
+        toast.success(`Password reset link sent to ${formData.email}`);
+      } else {
+        toast.error(response.data.message || 'Failed to send reset email');
+      }
+    } catch (error) {
+      toast.error('Error sending password reset email');
+      console.error('Password reset error:', error);
+    } finally {
+      setIsResettingPassword(false);
+      setShowResetDialog(false);
     }
   };
 
@@ -105,7 +139,17 @@ export default function LoginPage() {
                 />
               </div>
               <div className="grid gap-1">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="password">Password</Label>
+                  <button 
+                    type="button" 
+                    onClick={initiatePasswordReset}
+                    className="text-sm text-emerald-500 hover:text-emerald-600 hover:underline"
+                    disabled={isResettingPassword}
+                  >
+                    {isResettingPassword ? 'Sending...' : 'Forgot password?'}
+                  </button>
+                </div>
                 <div className="relative">
                   <Input
                     id="password"
@@ -156,6 +200,43 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <DialogContent className="sm:max-w-[425px] bg-white rounded-lg">
+          <DialogHeader>
+            <DialogTitle className="text-emerald-600">Reset Password</DialogTitle>
+            <DialogDescription className="text-gray-600">
+              A password reset link will be sent to:
+              <span className="font-medium text-emerald-600 block mt-1">{formData.email}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <p className="text-sm text-gray-500">
+              Click "Confirm" to receive instructions for resetting your password.
+            </p>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" className="border-gray-300 hover:bg-gray-50">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button 
+              onClick={handleForgotPassword}
+              className="bg-emerald-500 hover:bg-emerald-600"
+              disabled={isResettingPassword}
+            >
+              {isResettingPassword ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

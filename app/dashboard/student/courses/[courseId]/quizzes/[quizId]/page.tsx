@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Clock, Loader2, Check } from "lucide-react"
+import { ArrowLeft, Clock, Loader2, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -57,6 +57,17 @@ export default function QuizPage() {
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [loading, setLoading] = useState(true)
   const startTime = useRef(Date.now()) 
+  const [selectedImage, setSelectedImage] = useState<{
+    url: string
+    alt: string
+  } | null>(null)
+  const handleImageClick = (url: string, alt: string) => {
+    setSelectedImage({ url, alt })
+  }
+
+  const closeModal = () => {
+    setSelectedImage(null)
+  }
 
 const testtime=()=>{
   const endtime=Date.now()
@@ -319,6 +330,30 @@ const testtime=()=>{
 
   return (
     <div className="grid gap-6">
+           {/* Image Modal */}
+           {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          onClick={closeModal}
+        >
+          <div 
+            className="relative max-w-4xl max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeModal}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <img 
+              src={selectedImage.url}
+              alt={selectedImage.alt}
+              className="max-w-full max-h-[80vh] object-contain rounded-md"
+            />
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <IconLinkWithLoading
@@ -364,8 +399,9 @@ const testtime=()=>{
                   <div>{question.fileUrl &&  <img 
                         src={question.fileUrl} 
                         alt={question.fileName || "Question image"}
-                        className="max-h-40 rounded-md border"
-                      />}</div> 
+                        className="max-h-40 rounded-md border cursor-pointer hover:opacity-70 transition-opacity"
+                        onClick={() => handleImageClick(question.fileUrl, question.fileName)}
+                      />}</div>   
 
                   <RadioGroup
                     value={selectedOptionId || ""}

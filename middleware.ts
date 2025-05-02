@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
 
   // Define routes
   const publicRoutes = ["/", "/LandingPage", "/contact"]; // Accessible to everyone
-  const authRoutes = ["/signIn", "/signUp", "/forgot-password"];
+  const authRoutes = ["/signIn", "/signUp", "/reset-password"];
   const protectedRoutes = [
     "/dashboard",
     "/profile",

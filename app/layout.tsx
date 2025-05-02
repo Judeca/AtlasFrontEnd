@@ -4,13 +4,17 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { SocketProvider } from "./context/SocketContext"
 
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Learning Platform",
+  title: "Atlas Learn",
   description: "A modern learning platform for teachers and students",
+  icons: {
+    icon: "/letter-a-alphabet-a-sticker.jpg",
+  },
 }
 
 export default function RootLayout({
@@ -21,9 +25,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        
+          <SocketProvider>
           {children}
           <Toaster />
+          </SocketProvider>
        
       </body>
     </html>
