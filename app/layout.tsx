@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { SocketProvider } from "./context/SocketContext"
+import RealTimeImplementations from "./realTimehandling/realtime"
 
 
 const inter = Inter({ subsets: ["latin"] })
@@ -26,6 +27,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
           <SocketProvider>
+          <RealTimeImplementations />
           {children}
           <Toaster />
           </SocketProvider>

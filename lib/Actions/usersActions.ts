@@ -115,13 +115,14 @@ export async function updateUserRole(userId: string, newRole: string) {
     method: "PUT", 
     headers: {
       "Content-Type": "application/json",
+      Accept:"application/json"
     },
     body: JSON.stringify({ role: newRole }),
   });
 
-  if (!res.ok) {
+ { /* if (!res.ok) {
     throw new Error("Failed to update user role");
-  }
+  } */}
 
   return await res.json();
 }

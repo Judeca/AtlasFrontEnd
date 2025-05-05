@@ -33,3 +33,11 @@ export function getCookie(name: string): string | null {
   if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
   return null;
 }
+
+export const handleLogout = () => {
+  document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+  document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+  localStorage.removeItem("userId")
+  localStorage.removeItem("quizDeadline")
+  window.location.href = "/signIn"
+}

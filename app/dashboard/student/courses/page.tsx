@@ -35,7 +35,7 @@ export default function StudentCoursesPage() {
       console.log(userID)
       setUserId(userID)
     }
-  },[userId] );
+  },[] );
   
   
   useEffect(()=>{
