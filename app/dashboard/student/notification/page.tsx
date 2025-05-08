@@ -43,14 +43,14 @@ export default function StudentNotificationsPage() {
   }
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !userId) return;
 
     socket.on('new_notification_broadcast', fetchNotifications);
 
     return () => {
       socket.off('new_notification_broadcast', fetchNotifications);
     };
-  }, [socket]);
+  }, [socket,userId]);
 
   const markNotificationsAsSeen = async () => {
     try {
