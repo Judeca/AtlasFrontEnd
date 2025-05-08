@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, BookOpen, ChevronRight, FilePlus, Pencil, Trash2, FileText, Upload, Download,File } from "lucide-react"
+import { ArrowLeft, BookOpen, ChevronRight, FilePlus, Pencil, Trash2, FileText, Upload, Download,File, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +21,7 @@ import { toast } from "sonner"
 import { LinkWithLoading } from "@/components/link-with-loading"
 import { IconLinkWithLoading } from "@/components/icon-link-with-loading"
 import AnimatedUpload from "@/components/AnimatedLoading"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
 export default function ChapterPage() {
   const { courseId, chapterId } = useParams() as { courseId: string; chapterId: string }
@@ -37,6 +38,10 @@ export default function ChapterPage() {
     assignments: true,
     materials:true
   })
+  const [assignmentdeletingId, setAssignmentDeletingId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false)
 
    const [materials, setMaterials] = useState<CourseMaterial[]>([])
     const [error, setError] = useState({
@@ -297,7 +302,7 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
       setIsUploading(false);
     }
   };
-
+   
   const handleAssignmentCreated = () => {
     // Your refresh logic here
     console.log("Assignment created successfully, refresh data");
@@ -308,6 +313,41 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
     // Your refresh logic here
     console.log("Assignment created successfully, refresh data");
     fetchLessons(); // Example refresh function
+  };
+
+ 
+
+  const handleDeleteClick = (assignment: any) => {
+    setAssignmentToDelete(assignment);
+    setShowDeleteDialog(true);
+  };
+
+ 
+  
+  const handleConfirmDelete = async () => {
+    if (!assignmentToDelete) return;
+    try {
+      const result = await api.delete(`assignment/delete-assignment/${assignmentToDelete.id}`);
+      if (result) {
+        
+        toast.success("assignment deleted successfully", {
+          description: `${assignmentToDelete.title}has been removed.`
+        });
+        fetchAssignments();
+
+      } else {
+        toast.error("Failed to delete assignment", {
+        });
+      }
+    } catch (error) {
+      toast.error("An error occurred", {
+        description: error instanceof Error ? error.message : "Please try again"
+      });
+    } finally {
+      setAssignmentDeletingId(null);
+      setAssignmentToDelete(null);
+      setShowDeleteDialog(false);
+    }
   };
   
 
@@ -554,154 +594,179 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
         </TabsContent>
 
 
-        <TabsContent value="assignments">
-  <Card>
-    <CardHeader>
-      <CardTitle>Chapter Assignments</CardTitle>
-      <CardDescription>Manage assignments for this chapter</CardDescription>
-      <Button onClick={() => setIsCreateAssignmentModalOpen(true)}>
-        <FileText className="mr-2 h-4 w-4" />
-        Add Assignment
-      </Button>
-    </CardHeader>
-    
-    <CardContent>
-      {loading.assignments ? (
-        <div className="space-y-4">
-          {[1].map((i) => (
-            <Skeleton key={i} className="h-40 w-full" />
-          ))}
-        </div>
-      ) : assignments.length > 0 ? (
-        <div className="space-y-4">
-          {assignments.map((assignment) => {
-            // Determine file icon and status
-            const fileExtension = assignment.filetype?.split('/').pop()?.toUpperCase() || 
-                                 assignment.fileName?.split('.').pop()?.toUpperCase();
-            const FileIcon = fileExtension ? fileTypeIcons[fileExtension as keyof typeof fileTypeIcons] : FileText;
-           
-            const IconComponent = FileIcon || FileText;
-            const hasFile = assignment.fileUrl && assignment.fileName;
-            
-            return (
-              <div key={assignment.id} className="flex flex-col rounded-md border p-4"  onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between"  onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center gap-2">
-                  <IconComponent className="h-5 w-5 text-muted-foreground" />
-                    <h3 className="font-medium">{assignment.title}</h3>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit Assignment</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit Assignment
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete Assignment
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                
-                <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>
-                
-                {/* File status section */}
-                <div className="mt-2">
-                  {hasFile ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <IconComponent className="h-5 w-5 text-muted-foreground" />
-                      <span>{assignment.fileName}</span>
-                      <span className="text-xs bg-muted px-2 py-1 rounded-full">
-                        {fileExtension}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-muted-foreground flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      <span>No file attached</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex justify-between mt-4 text-sm">
-                  <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
-                  <span>{assignment.submissionsCount} submissions</span>
-                </div>
-                
-                <div className="mt-4 flex gap-2">
-                <Button asChild variant={hasFile ? "outline" : "default"}>
-  <label
-    htmlFor={`material-upload-${assignment.id}`}
-    className="relative inline-flex items-center cursor-pointer"
-  >
-    <Upload className="mr-2 h-4 w-4" />
-    {hasFile ? "Replace File" : "Upload File"}
-    <input
-      id={`material-upload-${assignment.id}`}
-      type="file"
-      className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10"
-      onChange={(e) => handleFileUploadAssignments(e, assignment.id)}
-      disabled={isUploading}
-    />
-  </label>
-</Button>
-                  
-                  <Link
-                    href={`/dashboard/teacher/courses/${courseId}/chapters/${chapterId}/assignments/${assignment.id}`}
-                  >
-                    <Button variant="outline" size="sm">
-                      View Submissions
-                    </Button>
-                  </Link>
-                  
-                  {hasFile && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => window.open(assignment.fileUrl, '_blank')}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                  )}
-                </div>
+           {/* Assignment Tab Content */}
+      <TabsContent value="assignments">
+        <Card>
+          <CardHeader>
+            <CardTitle>Chapter Assignments</CardTitle>
+            <CardDescription>Manage assignments for this chapter</CardDescription>
+            <Button onClick={() => setIsCreateAssignmentModalOpen(true)}>
+              <FileText className="mr-2 h-4 w-4" />
+              Add Assignment
+            </Button>
+          </CardHeader>
+          
+          <CardContent>
+            {loading.assignments ? (
+              <div className="space-y-4">
+                {[1].map((i) => (
+                  <Skeleton key={i} className="h-40 w-full" />
+                ))}
               </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="rounded-md border border-dashed p-6 text-center">
-          <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
-          <h3 className="mt-2 font-medium">No assignments yet</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Create an assignment for students to complete
-          </p>
-          <Button 
-            variant="outline" 
-            className="mt-4"
-            onClick={() => setIsCreateAssignmentModalOpen(true)}
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            Create Assignment
-          </Button>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-</TabsContent>
+            ) : assignments.length > 0 ? (
+              <div className="space-y-4">
+                {assignments.map((assignment) => {
+                  const fileExtension = assignment.filetype?.split('/').pop()?.toUpperCase() || 
+                                      assignment.fileName?.split('.').pop()?.toUpperCase()
+                  const FileIcon = fileExtension ? fileTypeIcons[fileExtension as keyof typeof fileTypeIcons] : FileText
+                  const IconComponent = FileIcon || FileText
+                  const hasFile = assignment.fileUrl && assignment.fileName
+                  
+                  return (
+                    <div key={assignment.id} className="flex flex-col rounded-md border p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <IconComponent className="h-5 w-5 text-muted-foreground" />
+                          <h3 className="font-medium">{assignment.title}</h3>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Pencil className="h-4 w-4" />
+                              <span className="sr-only">Edit Assignment</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit Assignment
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-destructive"
+                              onClick={() => handleDeleteClick(assignment)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Assignment
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      
+                      <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>
+                      
+                      <div className="mt-2">
+                        {hasFile ? (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <IconComponent className="h-5 w-5 text-muted-foreground" />
+                            <span>{assignment.fileName}</span>
+                            <span className="text-xs bg-muted px-2 py-1 rounded-full">
+                              {fileExtension}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            <span>No file attached</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex justify-between mt-4 text-sm">
+                        <span>Due: {new Date(assignment.dueDate).toLocaleDateString()}</span>
+                        <span>{assignment.submissionsCount} submissions</span>
+                      </div>
+                      
+                      <div className="mt-4 flex gap-2">
+                        <Button asChild variant={hasFile ? "outline" : "default"}>
+                          <label
+                            htmlFor={`material-upload-${assignment.id}`}
+                            className="relative inline-flex items-center cursor-pointer"
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            {hasFile ? "Replace File" : "Upload File"}
+                            <input
+                              id={`material-upload-${assignment.id}`}
+                              type="file"
+                              className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer z-10"
+                              onChange={(e) => handleFileUploadAssignments(e, assignment.id)}
+                              disabled={isUploading}
+                            />
+                          </label>
+                        </Button>
+                        
+                        <Link
+                          href={`/dashboard/teacher/courses/${courseId}/chapters/${chapterId}/assignments/${assignment.id}`}
+                        >
+                          <Button variant="outline" size="sm">
+                            View Submissions
+                          </Button>
+                        </Link>
+                        
+                        {hasFile && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => window.open(assignment.fileUrl, '_blank')}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="rounded-md border border-dashed p-6 text-center">
+                <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
+                <h3 className="mt-2 font-medium">No assignments yet</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Create an assignment for students to complete
+                </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => setIsCreateAssignmentModalOpen(true)}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Create Assignment
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
        
         
         
         
 
       </Tabs>
+
+       {/* Delete Confirmation Dialog */}
+       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the assignment:
+              <span className="font-semibold"> {assignmentToDelete?.title}</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete Assignment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <CreateLessonModal
         courseId={courseId}
