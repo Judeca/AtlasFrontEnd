@@ -5,7 +5,7 @@ import { useSocket } from '@/app/context/SocketContext';
 import api from "@/app/utils/axiosInstance"
 
 import Link from "next/link"
-import { ArrowLeft, ChevronRight, FolderPlus, Pencil, Trash2, FileText, HelpCircle, Upload,File, EyeOff, Loader2 } from "lucide-react"
+import { ArrowLeft, ChevronRight, FolderPlus, Pencil, Trash2, FileText, HelpCircle, Upload,File, EyeOff, Loader2, Router, X, Check } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,7 +14,7 @@ import { CreateChapterModal } from "@/components/create-chapter-modal"
 import { CreateQuizModal } from "@/components/create-quiz-modal"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { Skeleton } from "@/components/ui/skeleton"
 import {FileType,CourseMaterial,fileTypeIcons, isMediaFile} from "@/app/utils/fileTypes"
 import { toast } from "sonner"
@@ -26,6 +26,9 @@ import { OnlineIndicator } from "@/app/components/OnlineIndicator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DeleteConfirmationDialog } from "@/components/confirmation-deletion-dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function CoursePage() {
   const { socket } = useSocket();
@@ -46,7 +49,20 @@ export default function CoursePage() {
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(true);
   const [isAddingTeacher, setIsAddingTeacher] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState<any | null>(null);
+  const [courseToDelete, setcourseforDelete] = useState(false);
+  const [isRemovingcourse, setisRemovingcourse] = useState(false);
+ //chapter deletion
+  const [chapterToDelete, setchapterforDelete] = useState(false);
+  const [isRemovingchapter, setisRemovingchapter] = useState(false);
+  const [selectedchapterId, setselectedchapterId] = useState<string>('');
 
+   //Quiz deletion
+   const [quizToDelete, setquizforDelete] = useState(false);
+   const [isRemovingquiz, setisRemovingquiz] = useState(false);
+   const [selectedquizId, setselectedquizId] = useState<string>('');
+
+
+  const router = useRouter()
   const [loading, setLoading] = useState({
     chapter: false,
     lessons: true,
@@ -61,6 +77,53 @@ export default function CoursePage() {
   const [isLoadingquizzes, setIsLoadingquizzes] = useState(true);
   const [isLoadingmaterials, setIsLoadingmaterials] = useState(true);
   const [isLoadingcourseTeacher, setIsLoadingcourseTeacher] = useState(true);
+//course name edit
+const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState({
+    title: '',
+    description: ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleInputuserChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { 
+    e.preventDefault(); 
+    const { name, value } = e.target; 
+    setEditedData({ 
+    ...editedData, 
+    [name]: value, 
+    }); 
+    }; 
+
+  const handleEditClick = (title:string,description:string) => {
+    setEditedData({
+      title: title,
+      description: description
+    });
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.put(`/course/update-courses/${courseId}`,editedData);
+
+      if (!response) {
+        throw new Error('Failed to update course');
+      }
+
+      setIsEditing(false);
+      fetchCourse()
+    } catch (error) {
+      console.error('Failed to update course:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   
   const [error, setError] = useState({
@@ -345,6 +408,16 @@ const deletequiz=async(quizId:string)=>{
     console.error("Error deleting quiz", error);
   }
 }
+
+const quizdeletionset=(quizId:string)=>{
+  setselectedquizId(quizId)
+  setquizforDelete(true)
+}
+
+const quizdeletionfinal=()=>{
+  deletequiz(selectedquizId)
+}
+
 const deletechapter=async(chapterId:string)=>{
   try {
     const response = await api.delete(`/chapter/delete-chapter/${chapterId}`);
@@ -355,9 +428,20 @@ const deletechapter=async(chapterId:string)=>{
   }
 }
 
+const chapterdeletionset=(chapterId:string)=>{
+  setselectedchapterId(chapterId)
+  setchapterforDelete(true)
+}
+
+const chapterdeletionfinal=()=>{
+  deletechapter(selectedchapterId)
+}
+
+
+
 const handleChapterCreated = () => {
  
-  console.log("Assignment created successfully, refresh data");
+  console.log("Chapter created successfully, refresh data");
   fetchChapters(); //refresh function
 };
 
@@ -408,6 +492,37 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
   }
 };
 
+
+ const setCourseToDelete=()=>{
+  setcourseforDelete(true)
+
+ }
+
+ const handleConfirmcourseDelete = async () => {
+  if (!courseId) return;
+  setisRemovingcourse(true);
+  try {
+    const result = await api.delete(`course/delete-courses/${courseId}`);
+    if (result) {
+      
+      toast.success("course deleted successfully", {
+        description: `course has been removed.`
+      });
+      router.push('/dashboard/teacher/courses');
+      
+    } else {
+      toast.error("Failed to delete course", {
+      });
+    }
+  } catch (error) {
+    toast.error("An error occurred", {
+      description: error instanceof Error ? error.message : "Please try again"
+    });
+  } finally {
+    setisRemovingcourse(false);
+    setcourseforDelete(false);
+  }
+};
   return (
     <div className="grid gap-6">
       <div className="flex items-center gap-2">
@@ -416,16 +531,79 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
         icon={<ArrowLeft className="h-4 w-4" />}
         srText="Back to course"
         variant="ghost"
-      />
-        <div>
-        {courses && ( 
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{courses.title}</h1>
-          <p className="text-muted-foreground">{courses.description}</p>
+      /></div>
+      <div className="space-y-4">
+  <div className="flex flex-col gap-4">
+    {isEditing ? (
+      <div className="flex flex-col gap-4">
+        
+        <div className="flex items-center gap-2">
+          <Input
+            id="title"
+            name="title"
+            value={editedData.title}
+            onChange={(e) => handleInputuserChange(e)}
+            className="text-3xl font-bold h-12 flex-1 min-w-[200px]"
+          />
+          <div className="flex gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleSave}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+              <span className="sr-only">Save</span>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleCancel}
+              disabled={isLoading}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Cancel</span>
+            </Button>
+          </div>
         </div>
-      )}
-        </div>
+        
+        
+        <Textarea
+          value={editedData.description}
+          onChange={(e) => setEditedData({...editedData, description: e.target.value})}
+          className="text-muted-foreground w-full"
+        />
       </div>
+    ) : (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <h1 className="text-3xl font-bold tracking-tight break-words flex-1">
+            {courses?.title}
+          </h1>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 shrink-0"
+            onClick={() => handleEditClick(courses?.title, courses?.description)}
+          >
+            <Pencil className="h-4 w-4" />
+            <span className="sr-only">Edit Course</span>
+          </Button>
+        </div>
+        
+        {/* Description en dessous */}
+        <p className="text-muted-foreground break-words">
+          {courses?.description}
+        </p>
+      </div>
+    )}
+  </div>
+</div>
+               
 
       <Tabs defaultValue="chapters" className="w-full">
         <TabsList className="grid w-full grid-cols-5">
@@ -482,7 +660,7 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
                           Add Assignment
                         </DropdownMenuItem>*/}
                         <DropdownMenuItem className="text-destructive"
-                        onClick={() => deletechapter(chapter.id)}>
+                        onClick={() =>chapterdeletionset(chapter.id) }>
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete Chapter 
                         </DropdownMenuItem>
@@ -688,7 +866,7 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
                       )}
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive"
-                    onClick={() => deletequiz(quiz.id)}>
+                    onClick={() => quizdeletionset(quiz.id)}>
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete Quiz
                     </DropdownMenuItem>
@@ -864,7 +1042,9 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
                 This will permanently delete the course and all its content
               </p>
             </div>
-            <Button variant="destructive">Delete</Button>
+            <Button variant="destructive"
+            onClick={() => setCourseToDelete()}
+            >Delete</Button>
           </div>
         </div>
       </div>
@@ -902,6 +1082,7 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
         onSuccess={()=>handleChapterCreated()}
         onClose={() => setIsCreateChapterModalOpen(false)}
       />
+
        <CreateQuizModal
         courseId={courseId}
         userId={userId}
@@ -911,7 +1092,43 @@ const updateQuizview = async (quizId: string, currentview: boolean) => {
         onSuccess={()=>handleQuizCreated()}
         onClose={() => setIsCreateQUizModalOpen(false)}
       />
-      
+
+      {/*for course deletion */}
+      <DeleteConfirmationDialog
+            isOpen={courseToDelete}
+            onOpenChange={setcourseforDelete}
+            onConfirm={handleConfirmcourseDelete}
+            title="Confirm Removal"
+            description="This will remove the course and all its related informations "
+            isLoading={isRemovingcourse}
+            confirmButtonText="delete course"
+            cancelButtonText="Cancel"
+          />
+
+            {/*for chapter deletion */}
+      <DeleteConfirmationDialog
+            isOpen={chapterToDelete}
+            onOpenChange={setchapterforDelete}
+            onConfirm={chapterdeletionfinal}
+            title="Confirm Removal"
+            description="This will remove the chapter and all its related informations "
+            isLoading={isRemovingchapter}
+            confirmButtonText="delete chapter"
+            cancelButtonText="Cancel"
+          />
+
+
+            {/*for quiz deletion */}
+      <DeleteConfirmationDialog
+            isOpen={quizToDelete}
+            onOpenChange={setquizforDelete}
+            onConfirm={quizdeletionfinal}
+            title="Confirm Removal"
+            description="This will remove the Quiz and all its related informations "
+            isLoading={isRemovingquiz}
+            confirmButtonText="delete quiz"
+            cancelButtonText="Cancel"
+          />
 
     </div>
   )

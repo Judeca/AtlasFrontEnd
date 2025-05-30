@@ -765,7 +765,7 @@ const handleFileUploadMaterials = async (e: React.ChangeEvent<HTMLInputElement>)
               Delete Assignment
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogContent>
+        </AlertDialogContent> 
       </AlertDialog>
 
       <CreateLessonModal

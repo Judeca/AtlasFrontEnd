@@ -57,7 +57,7 @@ export function QuizWarningModal({
         </div>
       </li>
       
-      {/* Intermediate Questions */}
+      {/* Intermediate Questions 
       <li className="flex items-start gap-1">
         <span className="font-medium text-blue-600">Intermediate Questions:</span>
         <div className="ml-1">
@@ -67,7 +67,7 @@ export function QuizWarningModal({
         </div>
       </li>
       
-      {/* Advanced Questions */}
+      
       <li className="flex items-start gap-1">
         <span className="font-medium text-purple-600">Advanced Questions:</span>
         <div className="ml-1">
@@ -75,7 +75,7 @@ export function QuizWarningModal({
           <span className="mx-1">/</span>
           <span className="text-red-500">Wrong: -3</span>
         </div>
-      </li>
+      </li>*/}
     </ul>
   </div>
 </DialogHeader>
