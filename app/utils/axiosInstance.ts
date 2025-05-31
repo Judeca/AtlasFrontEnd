@@ -4,8 +4,8 @@ import axios from "axios";
 
 // Determine the base URL based on the environment
 const baseURL = process.env.NODE_ENV === "production" 
-  ? "https://atlaslearn.onrender.com" 
-  : "http://localhost:3001";
+  ? process.env.NEXT_PUBLIC_API_URL
+  : process.env.NEXT_PUBLIC_API_URL;
 
 const api = axios.create({
   baseURL,
