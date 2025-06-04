@@ -4,7 +4,7 @@ import { GraduationCap, BookOpen } from "lucide-react"
 import LandingPage from "./LandingPage/LandingPage"
 
 export default function Home() {
-  return <LandingPage />
+  return <LandingPage />   
 }
   
   
